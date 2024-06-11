@@ -11,7 +11,7 @@ function handleSubmit(event) {
   // Display result
   const outputContainer = document.querySelector('.output-container');
   const outputImg = document.querySelector('#output-img');
-  outputImg.setAttribute('src', 'your_output_image_url_here');
+  outputImg.setAttribute('src', ' ');
 
   const stampImg = document.querySelector('#stamp');
   stampImg.setAttribute('src', './front-end/wanxizhi_stamp.png');
