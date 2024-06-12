@@ -16,8 +16,11 @@
             <div class="input-output-container">
                 <div class="input-container">
                     <div class="input-group">
-                        <input required="" type="text" name="text" autocomplete="off" class="char-input">
-                        <label class="user-label">Input Chinese characters</label>
+                    <input required="" type="text" name="text" autocomplete="off" class="char-input" pattern="^.{1}$|^.{5,}$">
+                    <label class="user-label">Input Chinese characters</label>
+                  </div>
+                  <div class="input-guide">
+                    Please enter a single character or a multiple of 5.
                     </div>
                     <input type="text" class="stroke-input" placeholder="input strokes">
                     <a class="submitBtn" href="#">
