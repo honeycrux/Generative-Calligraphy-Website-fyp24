@@ -99,6 +99,11 @@ footer p {
     width: 40vw;
 }
 
+.input-guide {
+    font-size: 14px;
+    color: #9e9e9e;
+}
+
 .input-group {
     position: relative;
     margin-bottom: 20px;
