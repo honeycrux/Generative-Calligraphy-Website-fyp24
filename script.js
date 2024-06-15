@@ -38,18 +38,19 @@ function handleSubmit(event) {
 
 // Transform raw input into a txt. file
 function createTextFile() {
-  var input = document.querySelector(".char-input").value; // Get the input from the char-input field
+  var input = document.querySelector(".char-input").value;
+  
+  // Create a blob with the input content
   var fileBlob = new Blob([input], { type: "text/plain" });
 
-  // Create a temporary link element
-  var link = document.createElement("a");
-  link.href = URL.createObjectURL(fileBlob);
-  link.download = "output.txt";
+  // Create a FormData object and append the file to it
+  var formData = new FormData();
+  formData.append("file", fileBlob, "chara.txt");
 
-  // Append the link to the document and click it to triggerthe file download
-  document.body.appendChild(link);
-  link.click();
+  // Create an XMLHttpRequest object
+  var xhr = new XMLHttpRequest();
 
-  // Clean up the temporary link
-  document.body.removeChild(link);
+  // Set up the request
+  xhr.open("POST", "backend-url"); // Replace "backend-url" with the actual URL of your backend endpoint
+  xhr.send(formData);
 }
