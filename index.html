@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Font Transform Website</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <div class="main-container">
@@ -17,13 +17,13 @@
                 <div class="input-container">
                     <div class="input-group">
                         <input required="" type="text" name="text" autocomplete="off" class="char-input" pattern="^.{1}$">
-                        <label class="user-label">Input Chinese characters</label>
+                        <label class="user-label">Input a Chinese character</label>
                     </div>
                     <div class="input-guide">
-                        Please enter a single character.
+                        Input 32 numbers:
                     </div>
                     <input type="text" class="stroke-input" placeholder="input strokes">
-                    <a class="submitBtn" href="#" onclick="createTextFile()">
+                    <a class="submitBtn" href="#" onclick="">
                         <span class="top-key"></span>
                         <span class="text">Generate</span>
                         <span class="bottom-key-1"></span>
@@ -31,8 +31,8 @@
                     </a>
                 </div>
                 <div class="output-container">
-                    <img src="./back-end/lan.png" alt="[no tour image available]" id="output-img"/>
-                    <img src="./front-end/wanxizhi_stamp.png" alt="[no tour image available]" id="stamp"/>
+                    <img src="./static/lan.png" alt="[no tour image available]" id="output-img"/>
+                    <img src="./static/wanxizhi_stamp.png" alt="[no tour image available]" id="stamp"/>
                 </div>
             </div>
         </div>
@@ -40,7 +40,7 @@
             <div class="description">
                 <h1>--- What this is about ---</h1>
                 <div class="descript-section">
-                    <img src="./front-end/lanTingXu.jpeg" alt="[no tour image available]" class="descript-img"/>
+                    <img src="./static/lanTingXu.jpeg" alt="[no tour image available]" class="descript-img"/>
                     <p>
                         Being well-known around the globe, many Chinese classic calligraphy works are appreciated by
                         people. However, with diverse writing styles of calligraphers, the style of every calligraphy work
@@ -53,7 +53,7 @@
                         To complete the task, an AI model is introduced to generate Chinese characters with specific
                         calligraphy style that are not included in the original artwork.
                     </p>
-                    <img src="./front-end/diffusion_model.png" alt="[no tour image available]" class="descript-img"/>
+                    <img src="./static/new_model_structure.png" alt="[no tour image available]" class="descript-img"/>
                 </div>
                 <div class="descript-section">
                     <p>
@@ -62,7 +62,7 @@
                         model, style and content encoder, stroke encoding, sampling, results processing, the final results,
                         limitations, and some possible improvements to be made.
                     </p>
-                    <img src="./front-end/stroke_encode.png" alt="[no tour image available]" class="descript-img"/>
+                    <img src="./static/stroke_encode.png" alt="[no tour image available]" class="descript-img"/>
                 </div>
             </div>
             <footer>
@@ -72,6 +72,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
