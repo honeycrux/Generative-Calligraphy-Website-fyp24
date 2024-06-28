@@ -91,3 +91,29 @@ function saveFile(content, filename) {
 function createTextFile() {
 
 }
+
+async function displayImg(event) {
+  event.preventDefault();
+  
+  // Get user input
+  const charInput = document.querySelector('.char-input');
+  const userInput = charInput.value;
+
+  try {
+    const response = await fetch(`/files/${userInput}`);
+    if (!response.ok) {
+        throw new Error('File not found');
+    }
+
+    // Create a URL for the image and set it as the src of the image element
+    const imageBlob = await response.blob();
+    const imageURL = URL.createObjectURL(imageBlob);
+
+    // Show the image 
+    const outputImg = document.querySelector('#output-img');
+    outputImg.setAttribute('src', imageURL);
+} catch (error) {
+    console.error('Error fetching the image:', error);
+}
+
+}
