@@ -51,5 +51,15 @@ def save_file():
         abort(500, description=str(e))
 
 
+@app.route('/execute_command', methods=['GET'])
+def execute_command():
+    try:
+        command = 'hostname -I'  # Shell command to be executed
+        result = os.popen(command).read()
+        return result
+    except Exception as e:
+        return str(e)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=9000, debug=True)
