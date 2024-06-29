@@ -14,8 +14,7 @@ from utils.script_util import (
 from PIL import Image
 from attrdict import AttrDict
 import yaml
-from lora import inject_trainable_lora_extended
-import itertools
+import shutil
 
 
 def img_pre_pros(img_path, image_size):
@@ -64,15 +63,14 @@ def main():
     # save directory
     if not os.path.exists(img_save_path):
         os.mkdir(img_save_path)
+    else:
+        shutil.rmtree(img_save_path)
 
     # create UNet model and diffusion
     logger.log("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(cfg, model_and_diffusion_defaults().keys())
     )
-
-    model.requires_grad_(True)
-    unet_lora_params, train_names = inject_trainable_lora_extended(model)
 
     # load model
     model.load_state_dict(
@@ -259,6 +257,7 @@ def main():
 
     dist.barrier()
     logger.log("sampling complete")
+    os.system('chmod -R 777 ' + img_save_path)
 
 
 def create_cfg(cfg):
