@@ -5,21 +5,27 @@ import numpy as np
 import pathlib
 import argparse
 from fontTools.ttLib import TTFont
+import shutil
 
 
 parser = argparse.ArgumentParser(description='Obtaining characters from .ttf')
-parser.add_argument('--ttf_path', type=str, default='../ttf_folder',help='ttf directory')
-parser.add_argument('--chara', type=str, default='../chara.txt',help='characters')
-parser.add_argument('--save_path', type=str, default='../save_folder',help='images directory')
-parser.add_argument('--img_size', type=int, help='The size of generated images')
-parser.add_argument('--chara_size', type=int, help='The size of generated characters')
+parser.add_argument('--ttf_path', type=str, default='./ttf_folder',help='ttf directory')
+parser.add_argument('--chara', type=str, default='./char-input.txt',help='characters')
+parser.add_argument('--save_path', type=str, default='./content_folder',help='images directory')
+parser.add_argument('--img_size', type=int, default=80, help='The size of generated images')
+parser.add_argument('--chara_size', type=int, default=60, help='The size of generated characters')
 args = parser.parse_args()
+
+if os.path.exists('./content_folder'):
+    shutil.rmtree('./content_folder')
 
 file_object = open(args.chara,encoding='utf-8')   
 try:
 	characters = file_object.read()
 finally:
     file_object.close()
+
+print(characters)
 
 
 def draw_single_char(ch, font, canvas_size, x_offset, y_offset):
@@ -68,13 +74,16 @@ for idx, (label, item) in enumerate(zip(range(len(all_image_paths)),all_image_pa
     filter_cnt = 0
     for (chara, cnt) in zip(characters, range(len(characters))):
         img = draw_example(chara, src_font, args.img_size, (args.img_size-args.chara_size)/2, (args.img_size-args.chara_size)/2)
-        path_full = os.path.join(args.save_path, 'id_%d'%(label))
+        path_full = args.save_path
+        #path_full = os.path.join(args.save_path, 'id_%d'%(label))
         if not os.path.exists(path_full):
             os.mkdir(path_full)
         if args.img_size * args.img_size * 3 - np.sum(np.array(img) / 255.) < 100:
             filter_cnt += 1
         else:
             img_cnt += 1
-            img.save(os.path.join(path_full, "%05d.png" % (cnt)))
+            img.save(os.path.join(path_full, chara + '.png'))
+            #img.save(os.path.join(path_full, "%05d.png" % (cnt)))
     print(filter_cnt,' characters are missing in this font')
 
+os.system('chmod -R 777 /research/d2/fyp23/lylee0/Font-diff_content/content_folder')
