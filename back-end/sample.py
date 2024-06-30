@@ -65,6 +65,7 @@ def main():
         os.mkdir(img_save_path)
     else:
         shutil.rmtree(img_save_path)
+        os.mkdir(img_save_path)
 
     # create UNet model and diffusion
     logger.log("creating model and diffusion...")
