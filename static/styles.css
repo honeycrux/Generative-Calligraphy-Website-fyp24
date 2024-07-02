@@ -19,6 +19,9 @@ body, html {
     background-color: white;
 }
 
+
+
+/********** Footer styles ***********/
 footer {
     height: 100px;
     width: 100%;
@@ -48,6 +51,9 @@ footer p {
     }
 }
 
+
+
+/********** Main page styles ***********/
 .section {
     /* height: 100vh; */
     display: flex;
@@ -57,6 +63,21 @@ footer p {
     scroll-snap-align: start;
 }
 
+.title-container {
+    margin-top: 7vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.title-container span {
+    margin-bottom: 20px;
+    font-size: 2.5vh;
+    color: #28361890;
+}
+
+
+
+/********** Top input output section styles ***********/
 #top-section {
     min-height: 90vh;
     /* background-color: #f0f0f0; */
@@ -65,23 +86,11 @@ footer p {
     background-size: cover;
 }
 
-.title-container {
-    margin-top: 7vh;
-    display: flex;
-    flex-direction: column;
-}
-
 #top-section h1 {
     margin-bottom: 20px;
     font-size: 7vh;
     letter-spacing: -2px;
     color: #283618;
-}
-
-.title-container span {
-    margin-bottom: 20px;
-    font-size: 2.5vh;
-    color: #28361890;
 }
 
 .input-output-container {
@@ -93,6 +102,9 @@ footer p {
     font-family: sans-serif;
 }
 
+
+
+/********** Input box styles ***********/
 .input-container {
     display: flex;
     flex-direction: column;
@@ -146,6 +158,7 @@ footer p {
     margin-bottom: 20px;
 }
 
+/********** Generate button styles ***********/
 .submitBtn {
     background-color: transparent;
     border: 2px solid #000;
@@ -251,11 +264,19 @@ footer p {
     width: 0;
 }
 
+
+
+/********** Output box styles ***********/
 .output-container {
     width: 40vw;
     height: 100%;
+    min-height: 40vh;
     display: flex;
+    position: relative;
     justify-content: center;
+    align-items: center;
+    border: solid 3px #9e9e9e;
+    border-radius: 10px;
 }
 
 #output-img {
@@ -266,8 +287,75 @@ footer p {
 #stamp {
     z-index: 1;
     height: 100px;
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
 }
 
+/********** Output box loader styles ***********/
+.loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  #status {
+    color: black;
+    letter-spacing: 0.2em;
+    margin-bottom: 1em;
+    font-size: 1.3em;
+  }
+  
+  .loading {
+    display: flex;
+    width: 5em;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .load {
+    width: 23px;
+    height: 3px;
+    background-color: black;
+    animation: 1s move_5011 infinite;
+    border-radius: 5px;
+    margin: 0.1em;
+  }
+  
+  .load:nth-child(1) {
+    animation-delay: 0.2s;
+  }
+  
+  .load:nth-child(2) {
+    animation-delay: 0.4s;
+  }
+  
+  .load:nth-child(3) {
+    animation-delay: 0.6s;
+  }
+  
+  @keyframes move_5011 {
+    0% {
+      width: 0.2em;
+    }
+  
+    25% {
+      width: 0.7em;
+    }
+  
+    50% {
+      width: 1.5em;
+    }
+  
+    100% {
+      width: 0.2em;
+    }
+  }
+
+
+
+/********** bottom info section styles ***********/
 #bottom-section {
     min-height: 100vh;
     background-color: #1b263b9b;
@@ -314,6 +402,9 @@ footer p {
     font-size: 2.3vh;
 }
 
+
+
+/********** Mobile layout styles ***********/
 @media (max-width: 600px) {
     #top-section h1 {
         font-size: 5vh;
