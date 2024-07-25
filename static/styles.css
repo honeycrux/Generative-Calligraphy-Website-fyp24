@@ -8,7 +8,7 @@ body, html {
     height: 100%;
     font-family: serif;
     overflow: auto;
-    scroll-snap-type: y mandatory;
+    /* scroll-snap-type: y mandatory; */
     scroll-behavior: smooth;
 }
 
@@ -60,7 +60,7 @@ footer p {
     flex-direction: column;
     justify-content: start;
     align-items: center;
-    scroll-snap-align: start;
+    /* scroll-snap-align: start; */
 }
 
 .title-container {
@@ -75,19 +75,36 @@ footer p {
     color: #28361890;
 }
 
+/*.music-button-container {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+  }*/
 
+ /* .audio-container {
+    width: 200px;
+    height: 30px;
+    margin-top: 1vh;
+  }*/
+
+/*.encoding-rule img {
+    width: 100%;
+    height: 100%;
+    margin-left: 20px;
+}*/
 
 /********** Top input output section styles ***********/
 #top-section {
     min-height: 90vh;
     /* background-color: #f0f0f0; */
     text-align: center;
-    background-image: url('chinese_writingGrids(2)-1.png');
+    background-image: url('./website-background.jpg');
     background-size: cover;
 }
 
 #top-section h1 {
     margin-bottom: 20px;
+    font-family: serif;
     font-size: 7vh;
     letter-spacing: -2px;
     color: #283618;
@@ -108,7 +125,8 @@ footer p {
 .input-container {
     display: flex;
     flex-direction: column;
-    width: 40vw;
+    width:flex;
+    /* overflow: auto; */
 }
 
 .input-guide {
@@ -119,17 +137,23 @@ footer p {
 .input-group {
     position: relative;
     margin-bottom: 20px;
+    align-items: flex-start;
+    justify-content: flex-start;
 }
    
 .char-input {
-    width: 40vw;
+    width: 40vw; 
+    height: 14.5vw; 
     border: solid 3px #9e9e9e;
     border-radius: 1rem;
     background: none;
     padding: 1rem;
-    font-size: 10rem;
+    font-size: 3rem;
     color: #283618;
     transition: border 150ms cubic-bezier(0.4,0,0.2,1);
+    word-wrap: break-word;
+    flex-wrap: wrap;
+    overflow: auto;
 }
 
 .user-label {
@@ -154,10 +178,22 @@ footer p {
     color: #C1121F;
 }
 
-.stroke-input {
+/*.stroke-input {
     margin-bottom: 20px;
 }
+*/
 
+/* textarea {
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    padding: 10px;
+    max-width: 100%;
+    line-height: 1.5;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-shadow: 1px 1px 1px #999;
+} */
+  
 /********** Generate button styles ***********/
 .submitBtn {
     background-color: transparent;
@@ -271,17 +307,26 @@ footer p {
     width: 40vw;
     height: 100%;
     min-height: 40vh;
+    max-height: 40vh;
     display: flex;
     position: relative;
     justify-content: center;
     align-items: center;
     border: solid 3px #9e9e9e;
     border-radius: 10px;
+    margin-right: 20px;
+    backdrop-filter: blur(1px);
 }
 
 #output-img {
     min-height: 200px;
+    width: 100%;
     object-fit: contain;
+}
+
+.result-image {
+    width: 6vw;
+    height: auto;
 }
 
 #stamp {
@@ -290,6 +335,36 @@ footer p {
     position: absolute;
     bottom: 0px;
     right: 0px;
+}
+
+#output-result {
+    width: 100%;
+    max-height: 39vh;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    position: relative;
+    flex-wrap: wrap;
+    overflow-y: scroll;
+}
+
+.download-btn {
+    position: absolute;
+    bottom: 7px;
+    right: 7px;
+    height: 50px;
+    width: 50px;
+    background-color: transparent;
+    background-image: url('./circle-down-solid.png');
+    background-size: cover;
+    border-radius: 30px;
+    transition: 0.2s ease-in-out;
+
+}
+
+.download-btn:hover {
+    scale: 1.3;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
 }
 
 /********** Output box loader styles ***********/
