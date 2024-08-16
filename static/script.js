@@ -69,6 +69,7 @@ async function handleSubmit(event) {
   // Matching user input into an array
   charList = Array.from(charValue);
   console.log("【 inputCheck() 】obtained character list: ", charList);
+  
 
   // const strokeInput = document.querySelector('.stroke-input');
   // const strokeValue = strokeInput.value;
@@ -76,29 +77,6 @@ async function handleSubmit(event) {
   // console.log("【 inputCheck() 】obtained stroke list: ", strokeList)
 
   // *************************** Input Checking *****************************
-  // let isValidInput = true;
-  // 1. Checking if the length of both inputs matches
-  // console.log("char length: ", char.length, "stroke length: ", stroke.length)
-  // if (charList.length < strokeList.length) {
-  //   console.log("【 inputCheck() 】insufficent character input!")
-  //   alert("Insufficent character input, please enter enough characters for the stroke inputs");
-  //   isValidInput = false;
-  // } else if (charList.length > strokeList.length) {
-  //   console.log("【 inputCheck() 】insufficent stroke input!")
-  //   alert("Insufficent stroke input, please enter enough stroke combinations for the character inputs");
-  //   isValidInput = false;
-  // }
-
-  // 2. Check if the strokes are all numbers, has 32 digits 
-  // const strokeRegex = /^(\d\s?){32}$/
-  // strokeList.forEach(checkStroke => {
-  //   if ( !(strokeRegex.test(checkStroke)) ) {
-  //     console.log("【 inputCheck() 】invalid stroke input")
-  //     alert("Invalid stroke input, please enter a 32-digit, number stroke combination seperated by ',' ");
-  //     isValidInput = false;
-  //   }
-  // });
-
   if (charList.length < 1) {
     console.log("【 inputCheck() 】Empty character input!")
     alert("Empty input, please enter some characters for proper generation");
@@ -106,9 +84,27 @@ async function handleSubmit(event) {
     return;
   }
 
+  // Seperate chinese characters and non-chinese characters
+  let CHcharaRegex = /[\u4e00-\u9fff]+/g;
+  let non_CHcharaRegex = /[^\u4e00-\u9fff]+/g;
+  let CHinput = (charValue.match(CHcharaRegex));
+  if ( CHinput != null ) {
+    CHinput = (CHinput.join('')).split('')
+  }
+  let non_CHinput = charValue.match(non_CHcharaRegex);
+  if ( non_CHinput != null ) {
+    non_CHinput = (non_CHinput.join('')).split('')
+  }
+
+  console.log("【 inputCheck() 】Obtained chinese characters: ", CHinput)
+  console.log("【 inputCheck() 】Obtained non-chinese characters: ", non_CHinput)
+
+  
+
   // *************************** Creating content for file saving *****************************
   // Create the content for each file
-  const charContent = charList.join(' ');
+  const charContent = (CHinput != null) ? CHinput.join(' ') : '';
+  const nonCH_charContent = (non_CHinput != null) ? non_CHinput.join(' ') : '';
 
   // let strokeContent = ''
   // for (i = 0; i < charList.length; i++) {
@@ -133,6 +129,9 @@ async function handleSubmit(event) {
     // Save char-input.txt
     await saveFile(charContent, 'char-input.txt', SESSION_ID);
 
+    // Save nonCH-char-input.txt
+    await saveFile(nonCH_charContent, 'nonCH-char-input.txt', SESSION_ID);
+
     console.log("【 handleSubmit() 】Saved user input to /research/d2/fyp23/lylee0/Font-diff_content/char-input.txt");
 
     // Save stroke-input.txt
@@ -143,7 +142,7 @@ async function handleSubmit(event) {
     update_loader("Preparing for generation");
 
     // Transform txt to img after both inputs are saved
-    await font2img(SESSION_ID);
+    await font2img(SESSION_ID, 1);
 
     console.log("【 handleSubmit() 】Transformed txt to png and saved to /research/d2/fyp23/lylee0/content_folder/");
 
@@ -153,6 +152,11 @@ async function handleSubmit(event) {
     await generate_result(SESSION_ID);
 
     console.log("【 handleSubmit() 】result generated and saved to /research/d2/fyp23/lylee0/result_web/");
+
+    // Transform non-ch chara to img after results are generated
+    await font2img(SESSION_ID, 0);
+
+    console.log("【 handleSubmit() 】Transformed non-chinese chara to png and saved to /research/d2/fyp23/lylee0/content_folder/");
 
     await display_result(SESSION_ID);
 
@@ -216,29 +220,135 @@ function saveFile(content, filename, session_id) {
   })
 }
 
+// function font2img(session_id, isCH) {
+//   return new Promise((resolve, reject) => {
+//       const url = `/font2img?session_id=${session_id}&isCH=${isCH}`;
+//       console.log('【 font2img() 】is Chinese character? ', isCH);
+
+//       fetch(url)
+//           .then(function(response) {
+//               if (response.ok) {
+//                   console.log('【 font2img() 】Text transformed to PNG successfully');
+
+//                   if (!isCH) {
+//                       console.log('【 font2img() 】Processing non-Chinese characters for transparency');
+
+//                       response.blob().then(function(blob) {
+//                           const img = new Image();
+//                           const url = URL.createObjectURL(blob);
+
+//                           img.onload = function() {
+//                               const tempCanvas = document.createElement('canvas');
+//                               const tempCtx = tempCanvas.getContext('2d');
+
+//                               tempCanvas.width = img.width;
+//                               tempCanvas.height = img.height;
+
+//                               tempCtx.drawImage(img, 0, 0);
+
+//                               try {
+//                                   makeTransparent(tempCtx, tempCanvas.width, tempCanvas.height);
+
+//                                   // Replace the original image with the modified canvas
+//                                   const $originalImg = $(`img[src="${url}"]`);
+//                                   $originalImg.replaceWith(tempCanvas);
+
+//                                   resolve();
+//                               } catch (error) {
+//                                   console.error('Error processing image:', error);
+//                                   reject(error);
+//                               }
+//                           };
+
+//                           img.src = url;
+//                       }).catch(function(error) {
+//                           console.error('Error reading response blob:', error);
+//                           reject(error);
+//                       });
+//                   } else {
+//                       resolve();
+//                   }
+//               } else {
+//                   console.error('Failed to transform text.');
+//                   reject(new Error('Failed to transform text.'));
+//               }
+//           })
+//           .catch(function(error) {
+//               console.error('An error occurred:', error);
+//               reject(error);
+//           });
+//   });
+// }
+
+// function makeTransparent(ctx, width, height) {
+//   var imageData = ctx.getImageData(0, 0, width, height);
+
+//   for (var x = 0; x < imageData.width; x++) {
+//       for (var y = 0; y < imageData.height; y++) {
+//           var offset = (y * imageData.width + x) * 4;
+//           var r = imageData.data[offset];
+//           var g = imageData.data[offset + 1];
+//           var b = imageData.data[offset + 2];
+
+//           // If the pixel is pure white, set its alpha to 0
+//           if (r == 255 && g == 255 && b == 255) {
+//               imageData.data[offset + 3] = 0;
+//           }
+//       }
+//   }
+
+//   ctx.putImageData(imageData, 0, 0);
+// }
+
 
 // Transform txt to png by calling server
-function font2img(session_id) {
+
+function font2img(session_id, isCH) {
   // const front_url = construct_url();
   // const req_url = `font2img`;
   // const url = front_url.concat(req_url)
   // console.log("obtained url: ", url)
 
   return new Promise((resolve, reject) => {
-    const url = `/font2img?session_id=${session_id}`;
+    const url = `/font2img?session_id=${session_id}&isCH=${isCH}`;
+    console.log('【 font2img() 】is chinese chara? ', isCH);
 
     fetch(url)
       .then(function (response) {
         if (response.ok) {
           console.log('【 font2img() 】txt transformed to png sucessfully');
-          // Perform any additional actions or show success message
-          resolve();
+          if (!isCH) {
+            console.log('【 font2img() 】Processing non-Chinese characters for transparency');
+
+            // Get the text content
+            response.text().then(function(text) {
+              // Create a temporary canvas to draw the character
+              const tempCanvas = document.createElement('canvas');
+              const tempCtx = tempCanvas.getContext('2d');
+
+              // Set the font and draw the character on the canvas
+              tempCtx.font = '36px Arial';
+              tempCtx.fillText(text, 10, 50);
+
+              // Get the pixel data
+              const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+              const pixels = imageData.data;
+
+              // Put the modified pixel data back to the canvas
+              tempCtx.putImageData(imageData, 0, 0);
+                resolve();
+            }).catch(function(error) {
+                console.error('Error reading response text:', error);
+                reject();
+            });
         } else {
-          console.error('Failed to transform txt.');
-          // Handle the error
-          reject();
+            resolve();
         }
-      })
+    } else {
+        console.error('Failed to transform text.');
+        reject();
+    }
+})
       .catch(function (error) {
         console.error('An error occurred:', error);
         // Handle the error
@@ -298,10 +408,10 @@ function display_result(session_id) {
       let image_name = char + ".png"
       try {
         img.src = `/image/${session_id}/${image_name}`;
+        img.classList.add('result-image'); // Add a CSS class to the image element
       } catch {
         reject();
       }
-      img.classList.add('result-image'); // Add a CSS class to the image element
       picturesDiv.appendChild(img);
 
     });
@@ -370,6 +480,84 @@ function clear_res_dir(session_id) {
   });
 }
 
+// Function to add a white background to images with a transparent background
+function addWhiteBackgroundToImage(imageUrl) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.crossOrigin = "anonymous"; // Enable CORS for the image
+  img.src = imageUrl;
+
+  img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // Fill the canvas with white background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw the image on top of the white background
+      ctx.drawImage(img, 0, 0);
+
+      // Convert the canvas to a data URL
+      const dataURL = canvas.toDataURL('image/png');
+
+      // Optionally, you can trigger a download for the modified image
+      const link = document.createElement('a');
+      link.download = 'image.png';
+      link.href = dataURL;
+      link.click();
+  };
+}
+
+function removeBackgroundFromImage(imageUrl, threshold) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.crossOrigin = "anonymous"; // Enable CORS for the image
+  img.src = imageUrl;
+
+  img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      // Draw the image on the canvas
+      ctx.drawImage(img, 0, 0);
+
+      // Get the image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imageData.data;
+
+      // Loop through the pixels and remove the background based on the threshold
+      for (let i = 0; i < pixels.length; i += 4) {
+          const r = pixels[i];
+          const g = pixels[i + 1];
+          const b = pixels[i + 2];
+
+          // Calculate the average value to determine background
+          const average = (r + g + b) / 3;
+
+          if (average > threshold) {
+              // Set the pixel to transparent
+              pixels[i + 3] = 0;
+          }
+      }
+
+      // Put the modified image data back to the canvas
+      ctx.putImageData(imageData, 0, 0);
+
+      // Convert the canvas to a data URL
+      const dataURL = canvas.toDataURL('image/png');
+
+      // Optionally, you can trigger a download for the modified image
+      const link = document.createElement('a');
+      link.download = 'image.png';
+      link.href = dataURL;
+      link.click();
+  };
+}
+
+
 
 function handleDownload() {
   console.log('【 handleDownload() 】Start download process');
@@ -434,7 +622,9 @@ function handleDownload() {
   });
 
   // Convert the canvas content to a data URL
-  const imgData = canvas.toDataURL('image/png');
+  const imgData = canvas.toDataURL('image/jpg');
+  //addWhiteBackgroundToImage(imgData);
+  removeBackgroundFromImage(imgData, 200);
 
   // Create a temporary anchor element to trigger the download of the merged image
   const imgAnchor = document.createElement('a');
@@ -442,70 +632,69 @@ function handleDownload() {
   document.body.appendChild(imgAnchor);
 
   imgAnchor.href = imgData;
-  imgAnchor.download = 'merged_images.png';
+  // imgAnchor.download = 'merged_images.jpg';
   imgAnchor.click();
 
   // Cleanup
   document.body.removeChild(imgAnchor);
 }
 
+// function handleDownload() {
 
-function handleDownload1() {
+//   console.log('【 handleDownload() 】Start download process');
 
-  console.log('【 handleDownload() 】Start download process');
-
-  // Obtain session id for merge and download img
-  let session_id = '';
-  if (cur_session_id != '') {
-    session_id = cur_session_id;
-  } else {
-    return;
-  }
+//   // Obtain session id for merge and download img
+//   let session_id = '';
+//   if (cur_session_id != '') {
+//     session_id = cur_session_id;
+//   } else {
+//     return;
+//   }
 
 
-  // If the img is downloaded before, download it again without merging 
-  if (download_img_name != '') {
-    image_name = download_img_name;
-    console.log('【 handleDownload() 】Obtained image_name: ', image_name);
-    console.log('【 handleDownload() 】Start downloading merged image');
-    downloadImage(`/image/${session_id}/${image_name}`);
-    return;
-  }
+//   // If the img is downloaded before, download it again without merging 
+//   if (download_img_name != '') {
+//     image_name = download_img_name;
+//     console.log('【 handleDownload() 】Obtained image_name: ', image_name);
+//     console.log('【 handleDownload() 】Start downloading merged image');
+//     downloadImage(`/image/${session_id}/${image_name}`);
+//     return;
+//   }
 
-  console.log('【 handleDownload() 】Start merging images');
-  const url = `/merge_img?session_id=${session_id}`;
+//   console.log('【 handleDownload() 】Start merging images');
+//   const url = `/merge_img?session_id=${session_id}`;
 
-  // Call to merge images on the server
-  fetch(url)
-    .then(response => {
-      if (response.ok) {
-        return response.text();
-      } else {
-        throw new Error('Error fetching the merged images');
-      }
-    })
-    .then(imageName => {
-      image_name = imageName;
+//   // Call to merge images on the server
+//   fetch(url)
+//     .then(response => {
+//       if (response.ok) {
+//         return response.text();
+//       } else {
+//         throw new Error('Error fetching the merged images');
+//       }
+//     })
+//     .then(imageName => {
+//       image_name = imageName;
 
-      // if (download_img_name != '') {
-      //   image_name = download_img_name;
-      //   console.log('【 handleDownload() 】Obtained image_name: ', image_name);
-      //   console.log('【 handleDownload() 】Start downloading merged image');
-      //   downloadImage(`/image/${session_id}/${image_name}`);
-      //   return;
-      // }
+//       // if (download_img_name != '') {
+//       //   image_name = download_img_name;
+//       //   console.log('【 handleDownload() 】Obtained image_name: ', image_name);
+//       //   console.log('【 handleDownload() 】Start downloading merged image');
+//       //   downloadImage(`/image/${session_id}/${image_name}`);
+//       //   return;
+//       // }
 
-      download_img_name = image_name;
+//       download_img_name = image_name;
 
-      console.log('【 handleDownload() 】Obtained image_name: ', image_name);
-      console.log('【 handleDownload() 】Start downloading merged image');
-      downloadImage(`/image/${session_id}/${image_name}`);
-    })
-    .catch(error => {
-      console.error('Error fetching the merged images:', error);
-    });
+//       console.log('【 handleDownload() 】Obtained image_name: ', image_name);
+//       console.log('【 handleDownload() 】Start downloading merged image');
+//       downloadImage(`/image/${session_id}/${image_name}`);
+//     })
+//     .catch(error => {
+//       console.error('Error fetching the merged images:', error);
+//     });
 
-}
+// }
 
 function downloadImage(imageUrl) {
   fetch(imageUrl)
