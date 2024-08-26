@@ -140,27 +140,25 @@
                         work
                         varies. Moreover, there are only a limited number of characters in each artwork. It is a
                         challenging
-                        task to extend their font library.
+                        task to extend their font library. One of the most famous Chinese classic calligraphy is 
+                        Lanting Xu written by Wang Xizhi.
                     </p>
                 </div>
                 <div class="descript-section">
                     <p>
-                        To complete the task, an AI model is introduced to generate Chinese characters with specific
-                        calligraphy style that are not included in the original artwork.
+                        A diffusion model is trained to tackle the task, followed by extra fine-tuning steps. An 
+                        image of the skeleton of a Chinese character concatenated with Gaussian noise is passed 
+                        to a U-Net for model training in each loop, together with its style component encoded by 
+                        a pre-trained style encoder.
                     </p>
-                    <img src="./static/new_model_structure.png" alt="[no image available]" class="descript-img" />
+                    <img src="./static/summer_model.png" alt="[no image available]" class="descript-img" />
                 </div>
                 <div class="descript-section">
                     <p>
-                        A diffusion model is trained to tackle the task, followed by extra fine-tuning steps. This
-                        report
-                        dives into the project background, details of methodology, dataset choosing, principles of
-                        diffusion
-                        model, style and content encoder, stroke encoding, sampling, results processing, the final
-                        results,
-                        limitations, and some possible improvements to be made.
+                        The style encoder is taken from DG-Font, which encodes the style of the training dataset and characters
+                        in Lanting Xu.
                     </p>
-                    <img src="./static/stroke_encode.png" alt="[no image available]" class="descript-img" />
+                    <img src="./static/style_encoder.png" alt="[no image available]" class="descript-img" />
                 </div>
             </div>
             <footer>
