@@ -10,9 +10,9 @@ from PIL import Image
 app = Flask(__name__)
 CORS(app)
 
-FILES_DIRECTORY = '/research/d2/fyp23/lylee0/Font-diff_content/'
+FILES_DIRECTORY = '/research/d2/fyp23/lylee0/Font-diff_summer/'
 # Directory where result files are stored
-# RES_FILES_DIRECTORY = '/research/d2/fyp23/lylee0/Font-diff_content/result_web'
+# RES_FILES_DIRECTORY = '/research/d2/fyp23/lylee0/Font-diff_summer/result_web'
 # RES_FILES_DIRECTORY = '/result_web'
 
 
@@ -25,7 +25,7 @@ def index():
 
 
 # Directory where txt files are stored
-SAVE_DIRECTORY = '/research/d2/fyp23/lylee0/Font-diff_content/'
+SAVE_DIRECTORY = '/research/d2/fyp23/lylee0/Font-diff_summer/'
 
 @app.route('/save-file', methods=['GET'])
 def save_file():
@@ -70,9 +70,9 @@ def font2img():
         if not os.path.exists(CONTENT_DIRECTORY):
             os.mkdir(CONTENT_DIRECTORY) 
         if isCH:
-            command = f'python /research/d2/fyp23/lylee0/Font-diff_content/font2img.py --save_path ./{SESSION_ID}/content_folder --chara ./{SESSION_ID}/char-input.txt'  # Shell command to be executed
+            command = f'python /research/d2/fyp23/lylee0/Font-diff_summer/font2img.py --save_path ./{SESSION_ID}/content_folder --chara ./{SESSION_ID}/char-input.txt'  # Shell command to be executed
         else: 
-            command = f'python /research/d2/fyp23/lylee0/Font-diff_content/font2img.py --save_path ./{SESSION_ID}/content_folder --chara ./{SESSION_ID}/nonCH-char-input.txt'  # Shell command to be executed
+            command = f'python /research/d2/fyp23/lylee0/Font-diff_summer/font2img.py --save_path ./{SESSION_ID}/content_folder --chara ./{SESSION_ID}/nonCH-char-input.txt'  # Shell command to be executed
         # command = f'mpiexec -n 1 python sample.py --cfg_path cfg/test_cfg.yaml'
 
         result = run_command(command)
@@ -255,3 +255,4 @@ def clear_dir():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=9000, debug=True)
+
