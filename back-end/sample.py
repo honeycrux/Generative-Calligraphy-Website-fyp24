@@ -30,7 +30,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg_path', type=str, default='./cfg/test_cfg.yaml',
                         help='config file path')
+    parser.add_argument('--session_id', type=str, default='01',
+                        help='session id for client')
     parser = parser.parse_args()
+    session_id = parser.session_id
 
     # set up cfg
     with open(parser.cfg_path, 'r') as f:
@@ -40,22 +43,26 @@ def main():
     model_path = cfg.model_path
     sty_img_path = cfg.sty_img_path
     con_folder_path = cfg.con_folder_path
-    gen_text_stroke_path = cfg.gen_text_stroke_path
+    #gen_text_stroke_path = cfg.gen_text_stroke_path
     total_txt_file = cfg.total_txt_file
     img_save_path = cfg.img_save_path
-    classifier_free = cfg.classifier_free
-    cont_gudiance_scale = cfg.cont_scale
-    sk_gudiance_scale = cfg.sk_scale
+    #classifier_free = cfg.classifier_free
+    #cont_gudiance_scale = cfg.cont_scale
+    #sk_gudiance_scale = cfg.sk_scale
 
     cfg.__delattr__('model_path')
     cfg.__delattr__('sty_img_path')
     cfg.__delattr__('con_folder_path')
-    cfg.__delattr__('gen_text_stroke_path')
+    #cfg.__delattr__('gen_text_stroke_path')
     cfg.__delattr__('total_txt_file')
     cfg.__delattr__('img_save_path')
-    cfg.__delattr__('classifier_free')
-    cfg.__delattr__('cont_scale')
-    cfg.__delattr__('sk_scale')
+    #cfg.__delattr__('classifier_free')
+    #cfg.__delattr__('cont_scale')
+    #cfg.__delattr__('sk_scale')
+    con_folder_path = f'./{session_id}/content_folder'
+    # gen_text_stroke_path = f'./{session_id}/stroke-input.txt'
+    gen_text_stroke_path = None
+    img_save_path = f'./{session_id}/result_web'
 
     # set up distributed training
     dist_util.setup_dist()
@@ -111,13 +118,13 @@ def main():
     all_images = []
     all_labels = []
 
-    stroke_dict = {}
+    '''stroke_dict = {}
     if gen_text_stroke_path is not None:
         with open(gen_text_stroke_path, 'r') as f:
             gen_text_stroke = f.readlines()
             for gen_strokes in gen_text_stroke:
                 stroke_dict[gen_strokes[0]] = gen_strokes[1:]
-        f.close()
+        f.close()'''
 
     # for each batch
     # while len(all_images) * cfg.batch_size < cfg.num_samples:
@@ -126,22 +133,27 @@ def main():
 
         model_kwargs = {}
 
+        # logger.log("1...")
         # process input content image
         con_img = th.tensor(img_pre_pros(con_folder_path + "/" + char + ".png", cfg.image_size), requires_grad=False).cuda().repeat(cfg.batch_size, 1, 1, 1)
-        con_feat = model.con_encoder(con_img)
-        model_kwargs["y"] = con_feat
+        # con_feat = model.con_encoder(con_img)
+        # model_kwargs["y"] = con_feat
 
+        # logger.log("2...")
         # process target style image
         sty_img = th.tensor(img_pre_pros(sty_img_path, cfg.image_size), requires_grad=False).cuda().repeat(cfg.batch_size, 1, 1, 1)
         sty_feat = model.sty_encoder(sty_img)
         model_kwargs["sty"] = sty_feat
+        model_kwargs["cont"] = con_img
 
+        # logger.log("3...")
         # process input characters
         classes = th.tensor([i for i in char_idx[ch_idx:ch_idx + cfg.batch_size]], device=dist_util.dev())
         ch_idx += cfg.batch_size
 
+        # logger.log("4...")
         # read stroke information
-        if cfg.stroke_path is not None:
+        '''if cfg.stroke_path is not None:
             chars_stroke = th.empty([0, 32], dtype=th.float32)
 
             # read all stroke
@@ -166,17 +178,17 @@ def main():
             f.close()
 
             # take needed info
-            '''if classes >= 3000:
+            if classes >= 3000:
                 stk = "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"
                 stkth = th.tensor(stk)
                 model_kwargs["stroke"] = stkth.to(dist_util.dev())
-            else:'''
+            else:
             device = dist_util.dev()
             chars_stroke = chars_stroke.to(device)
             model_kwargs["stroke"] = chars_stroke[classes].to(device)
-            #model_kwargs["stroke"] = chars_stroke[classes].to(dist_util.dev())
+            #model_kwargs["stroke"] = chars_stroke[classes].to(dist_util.dev())'''
 
-        if classifier_free:
+        '''if classifier_free:
             if cfg.stroke_path is not None:
                 model_kwargs["mask_y"] = th.cat([th.zeros([cfg.batch_size], dtype=th.bool), th.ones([cfg.batch_size * 2], dtype=th.bool)]).to(dist_util.dev())
                 model_kwargs["y"] = model_kwargs["y"].repeat(3)
@@ -189,13 +201,14 @@ def main():
                 model_kwargs["mask_y"] = th.cat([th.zeros([cfg.batch_size], dtype=th.bool), th.ones([cfg.batch_size], dtype=th.bool)]).to(dist_util.dev())
                 model_kwargs["y"] = model_kwargs["y"].repeat(2)
                 model_kwargs["sty"] = model_kwargs["sty"].repeat(2, 1)
-        else:
-            model_kwargs["mask_y"] = th.zeros([cfg.batch_size], dtype=th.bool).to(dist_util.dev())
-            if cfg.stroke_path is not None:
-                model_kwargs["mask_stroke"] = th.zeros([cfg.batch_size], dtype=th.bool).to(dist_util.dev())
+        else:'''
+        model_kwargs["mask_y"] = th.zeros([cfg.batch_size], dtype=th.bool).to(dist_util.dev())
+        '''if cfg.stroke_path is not None:
+            model_kwargs["mask_stroke"] = th.zeros([cfg.batch_size], dtype=th.bool).to(dist_util.dev())'''
 
+        # logger.log("5...")
         def model_fn(x_t, ts, **model_kwargs):
-            if classifier_free:
+            '''if classifier_free:
                 repeat_time = model_kwargs["y"].shape[0] // x_t.shape[0]
                 x_t = x_t.repeat(repeat_time, 1, 1, 1)
                 ts = ts.repeat(repeat_time)
@@ -213,25 +226,39 @@ def main():
                     model_output_cond, model_output_uncond = model_output.chunk(2)
                     model_output = model_output_uncond + cont_gudiance_scale * (model_output_cond - model_output_uncond)
 
-            else:
-                model_output = model(x_t, ts, **model_kwargs)
+            else:'''
+                # logger.log("6...")
+            model_output = model(x_t, ts, **model_kwargs)
             return model_output
 
+        # logger.log("7...")
         sample_fn = (
             diffusion.p_sample_loop if not cfg.use_ddim else diffusion.ddim_sample_loop
         )
+        # sample = sample_fn(
+        #     model_fn,
+        #     (cfg.batch_size, 3, cfg.image_size, cfg.image_size),
+        #     # con_img = con_img,
+        #     clip_denoised=cfg.clip_denoised,
+        #     model_kwargs=model_kwargs,
+        #     device=dist_util.dev(),
+        #     noise=noise,
+        # )[:, 3:, :, :]
         sample = sample_fn(
             model_fn,
             (cfg.batch_size, 3, cfg.image_size, cfg.image_size),
+            # con_img = con_img,
             clip_denoised=cfg.clip_denoised,
             model_kwargs=model_kwargs,
             device=dist_util.dev(),
             noise=noise,
         )
+        
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
         sample = sample.permute(0, 2, 3, 1)
         sample = sample.contiguous()
 
+        
         gathered_samples = [th.zeros_like(sample) for _ in range(dist.get_world_size())]
         dist.all_gather(gathered_samples, sample)
         all_images.extend([sample.cpu().numpy() for sample in gathered_samples])
@@ -256,9 +283,34 @@ def main():
             #img_name = "%05d.png" % (idx)  #change the name
             img.save(os.path.join(img_save_path, img_name))
 
-    dist.barrier()
-    logger.log("sampling complete")
-    os.system('chmod -R 777 ' + img_save_path)
+            # remove background
+            #image = Image.open(os.path.join(img_save_path, img_name))
+
+            '''if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+
+            threshold = 200  # Adjust this value according to your image
+
+            width, height = img.size
+            pixels = img.load()
+
+            for x in range(width):
+                for y in range(height):
+                    r, g, b, a = pixels[x, y]
+
+                    if r > threshold or g > threshold or b > threshold:
+                        pixels[x, y] = (r, g, b, 0)  # Set the pixel to transparent
+                        a = 0
+                        
+                    #if a != 0:
+                        #pixels[x, y] = (0, 0, 0, a)
+
+            #output_path = 'output.png'
+            img.save(os.path.join(img_save_path, img_name))'''
+
+            dist.barrier()
+        logger.log("sampling complete")
+        os.system('chmod -R 777 ' + img_save_path)
 
 
 def create_cfg(cfg):
@@ -272,7 +324,7 @@ def create_cfg(cfg):
         sk_scale=1.0,
         sty_img_path="",
         #gen_text_stroke_path="", # add
-        stroke_path=None,
+        #stroke_path=None,
         attention_resolutions='40, 20, 10',
     )
     defaults.update(model_and_diffusion_defaults())
