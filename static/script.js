@@ -132,7 +132,7 @@ async function handleSubmit(event) {
     // Save nonCH-char-input.txt
     await saveFile(nonCH_charContent, 'nonCH-char-input.txt', SESSION_ID);
 
-    console.log("【 handleSubmit() 】Saved user input to /research/d2/fyp23/lylee0/Font-diff_content/char-input.txt");
+    console.log("【 handleSubmit() 】Saved user input to /research/d2/fyp23/lylee0/Font-diff_summer/char-input.txt");
 
     // Save stroke-input.txt
     // await saveFile(strokeContent, 'stroke-input.txt', SESSION_ID);
