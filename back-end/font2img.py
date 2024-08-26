@@ -16,8 +16,8 @@ parser.add_argument('--img_size', type=int, default=80, help='The size of genera
 parser.add_argument('--chara_size', type=int, default=60, help='The size of generated characters')
 args = parser.parse_args()
 
-if os.path.exists('./content_folder'):
-    shutil.rmtree('./content_folder')
+# if os.path.exists(args.save_path):
+#     shutil.rmtree(args.save_path)
 
 file_object = open(args.chara,encoding='utf-8')   
 try:
@@ -75,7 +75,7 @@ for idx, (label, item) in enumerate(zip(range(len(all_image_paths)),all_image_pa
     for (chara, cnt) in zip(characters, range(len(characters))):
         img = draw_example(chara, src_font, args.img_size, (args.img_size-args.chara_size)/2, (args.img_size-args.chara_size)/2)
         path_full = args.save_path
-        #path_full = os.path.join(args.save_path, 'id_%d'%(label))
+        # path_full = os.path.join(args.save_path, 'id_%d'%(label))
         if not os.path.exists(path_full):
             os.mkdir(path_full)
         if args.img_size * args.img_size * 3 - np.sum(np.array(img) / 255.) < 100:
@@ -83,7 +83,7 @@ for idx, (label, item) in enumerate(zip(range(len(all_image_paths)),all_image_pa
         else:
             img_cnt += 1
             img.save(os.path.join(path_full, chara + '.png'))
-            #img.save(os.path.join(path_full, "%05d.png" % (cnt)))
+            # img.save(os.path.join(path_full, "%05d.png" % (cnt)))
     print(filter_cnt,' characters are missing in this font')
 
-os.system('chmod -R 777 /research/d2/fyp23/lylee0/Font-diff_content/content_folder')
+os.system('chmod -R 777 /research/d2/fyp23/lylee0/Font-diff_summer/content_folder')
