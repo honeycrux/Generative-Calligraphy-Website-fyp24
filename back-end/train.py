@@ -72,8 +72,10 @@ def main():
     for p in model.sty_encoder.parameters():
         p.requires_grad = False
 
-    # load content encoder??
-    # froze content encoder??
+    # # load content encoder??
+    # # froze content encoder??
+    # for p in model.con_encoder.parameters():
+    #     p.requires_grad = False
 
     # load data
     logger.log("creating data loader...")
