@@ -13,7 +13,7 @@ body, html {
 }
 
 .main-container {
-    min-height: 200%;
+    /* min-height: 200%; */
     display: flex;
     flex-direction: column;
     background-color: white;
@@ -35,6 +35,7 @@ footer {
 footer p {
     width: 50vw;
     font-weight: 400;
+    font-size: 1.7vh;
 }
 
 #credit1 {
@@ -444,6 +445,9 @@ footer p {
 .description {
     padding-bottom: 200px;
     padding: 20px;
+    display: grid;
+    max-width: 100%; /* Set a fixed width for elements with the .description class */
+    box-sizing: border-box; /* Include padding and border in the element's total width */
 }
 
 .description h1 {
@@ -464,10 +468,13 @@ footer p {
     padding: 10px;
     padding-top: 40px;
     padding-bottom: 40px;
-    max-width: 80vw;
+    margin-left: 3vw;
+    margin-right: 3vw;
     border-radius: 30px;
     background-color: rgba(233, 231, 231, 0.2);
     backdrop-filter: blur(10px);
+    /* width: 100%; */
+    /* box-sizing: border-box; */
 }
 
 .descript-img {
@@ -484,19 +491,6 @@ footer p {
     font-size: 2.3vh;
 }
 
-@keyframes scale-a-lil {
-    from {
-        scale: .5;
-    }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .descript-section {
-        animation: scale-a-lil;
-        animation-timeline: view();
-        animation-range: 25vh 75vh;
-    }
-}
 
 /********** Mobile layout styles ***********/
 @media (max-width: 600px) {
