@@ -2,7 +2,7 @@
 
 Trained Model: https://mycuhk-my.sharepoint.com/:f:/g/personal/1155158772_link_cuhk_edu_hk/Eo3zqXgkVwFLjVAvPxmleqYBsGZZm2jbnXmKljZ70jWwDw?e=0VNlSj
 
-Pyhton Environment:
+Python Environment:
 Please refer to requirement.txt
 Python 3.9
 
