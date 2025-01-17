@@ -2,6 +2,7 @@ const submitBtn = document.querySelector('.submitBtn');
 submitBtn.addEventListener('click', handleSubmit);
 
 const LOADER_PROCESS_STATUS = "Loading";
+const FILES_DIRECTORY = '[Backend save location for your session]';
 
 let cur_session_id = '';
 let download_img_name = '';
@@ -88,13 +89,9 @@ async function handleSubmit(event) {
   let CHcharaRegex = /[\u4e00-\u9fff]+/g;
   let non_CHcharaRegex = /[^\u4e00-\u9fff]+/g;
   let CHinput = (charValue.match(CHcharaRegex));
-  if ( CHinput != null ) {
-    CHinput = (CHinput.join('')).split('')
-  }
+  CHinput = CHinput == null ? [] : CHinput.join('').split('');
   let non_CHinput = charValue.match(non_CHcharaRegex);
-  if ( non_CHinput != null ) {
-    non_CHinput = (non_CHinput.join('')).split('')
-  }
+  non_CHinput = non_CHinput == null ? [] : non_CHinput.join('').split('');
 
   console.log("【 inputCheck() 】Obtained chinese characters: ", CHinput)
   console.log("【 inputCheck() 】Obtained non-chinese characters: ", non_CHinput)
@@ -103,8 +100,8 @@ async function handleSubmit(event) {
 
   // *************************** Creating content for file saving *****************************
   // Create the content for each file
-  const charContent = (CHinput != null) ? CHinput.join(' ') : '';
-  const nonCH_charContent = (non_CHinput != null) ? non_CHinput.join(' ') : '';
+  const charContent = CHinput.join('');
+  const nonCH_charContent = non_CHinput.join('');
 
   // let strokeContent = ''
   // for (i = 0; i < charList.length; i++) {
@@ -132,31 +129,31 @@ async function handleSubmit(event) {
     // Save nonCH-char-input.txt
     await saveFile(nonCH_charContent, 'nonCH-char-input.txt', SESSION_ID);
 
-    console.log("【 handleSubmit() 】Saved user input to /research/d2/fyp23/lylee0/Font-diff_summer/char-input.txt");
+    console.log(`【 handleSubmit() 】Saved user input to ${FILES_DIRECTORY}/char-input.txt`);
 
     // Save stroke-input.txt
     // await saveFile(strokeContent, 'stroke-input.txt', SESSION_ID);
 
-    // console.log("【 handleSubmit() 】Saved stroke input to /research/d2/fyp23/lylee0/Font-diff_content/stroke-input.txt")
+    // console.log(`【 handleSubmit() 】Saved stroke input to ${FILES_DIRECTORY}/stroke-input.txt`)
 
     update_loader("Preparing for generation");
 
     // Transform txt to img after both inputs are saved
     await font2img(SESSION_ID, 1);
 
-    console.log("【 handleSubmit() 】Transformed txt to png and saved to /research/d2/fyp23/lylee0/content_folder/");
+    console.log(`【 handleSubmit() 】Transformed txt to png and saved to ${FILES_DIRECTORY}/content_folder/`);
 
     update_loader("Generating");
 
     // Generate result img 
     await generate_result(SESSION_ID);
 
-    console.log("【 handleSubmit() 】result generated and saved to /research/d2/fyp23/lylee0/result_web/");
+    console.log(`【 handleSubmit() 】result generated and saved to ${FILES_DIRECTORY}/result_web/`);
 
     // Transform non-ch chara to img after results are generated
     await font2img(SESSION_ID, 0);
 
-    console.log("【 handleSubmit() 】Transformed non-chinese chara to png and saved to /research/d2/fyp23/lylee0/content_folder/");
+    console.log(`【 handleSubmit() 】Transformed non-chinese chara to png and saved to ${FILES_DIRECTORY}/content_folder/`);
 
     await display_result(SESSION_ID);
 
@@ -189,7 +186,6 @@ function saveFile(content, filename, session_id) {
   const front_url = construct_url();
   const req_url = `save-file?content=${encodedContent}&filename=${encodedFilename}&session_id=${encodedSessionId}`;
   const url = front_url.concat(req_url)
-  // const url = `http://137.189.88.56:9000/save-file?content=${encodedContent}&filename=${encodedFilename}`;
   // console.log("obtained url: ", url)
 
   // Clear previous pictures
@@ -399,59 +395,42 @@ function display_result(session_id) {
   const url = `/get_images?session_id=${session_id}`;
 
   return new Promise((resolve, reject) => {
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        console.log('【 display_results() 】Images stored in the server:', data);
 
-    const picturesDiv = document.getElementById('pictures');
-    picturesDiv.innerHTML = ""; // Clear previous images
+        const picturesDiv = document.getElementById('pictures');
+        picturesDiv.innerHTML = ""; // Clear previous images
 
-    charList.forEach(char => {
-      const img = document.createElement('img');
-      let image_name = char + ".png"
-      try {
-        img.src = `/image/${session_id}/${image_name}`;
-        img.classList.add('result-image'); // Add a CSS class to the image element
-      } catch {
+        charList.forEach(char => {
+          if (data.find((element) => element.image_name === char + '.png') === undefined) {
+            return;
+          }
+          const img = document.createElement('img');
+          let image_name = char + ".png"
+          try {
+            img.src = `/image/${session_id}/${image_name}`;
+            img.classList.add('result-image'); // Add a CSS class to the image element
+          } catch {
+            reject();
+          }
+          picturesDiv.appendChild(img);
+        });
+        document.getElementById("output-result-container").style.display = "block";
+
+        // Hide the loading element
+        var loadingElement = document.getElementById("output-loader");
+        loadingElement.style.display = "none";
+
+        console.log('【 display_results() 】got result images');
+
+        resolve();
+      })
+      .catch(error => {
+        console.error('Error fetching the result images:', error);
         reject();
-      }
-      picturesDiv.appendChild(img);
-
-    });
-    document.getElementById("output-result-container").style.display = "block";
-
-    // Hide the loading element
-    var loadingElement = document.getElementById("output-loader");
-    loadingElement.style.display = "none";
-
-    console.log('【 display_results() 】got result images');
-
-    resolve();
-
-    // fetch(url)
-    //   .then(response => response.json())
-    //   .then(data => {
-
-    //     const picturesDiv = document.getElementById('pictures');
-    //     picturesDiv.innerHTML = ""; // Clear previous images
-
-    //     data.forEach(image => {
-    //       const img = document.createElement('img');
-    //       img.src = `/image/${session_id}/${image.image_name}`;
-    //       img.classList.add('result-image'); // Add a CSS class to the image element
-    //       picturesDiv.appendChild(img);
-    //       document.getElementById("output-result").style.display = "block";
-    //     });
-
-    //     // Hide the loading element
-    //     var loadingElement = document.getElementById("output-loader");
-    //     loadingElement.style.display = "none";
-
-    //     console.log('【 display_results() 】got result images');
-
-    //     resolve();
-    //   })
-    //   .catch(error => {
-    //     console.error('Error fetching the result images:', error);
-    //     reject();
-    //   });
+      });
   });
 }
 
@@ -720,7 +699,7 @@ function downloadImage(imageUrl) {
 function construct_url() {
 
   const host = window.location.hostname;
-  const port = 9000;
+  const port = 6700;
   const url = `http://${host}:${port}/`;
   console.log('【 construct_url() 】url for site constructed: ', url);
 

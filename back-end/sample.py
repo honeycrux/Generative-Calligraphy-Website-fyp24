@@ -28,41 +28,42 @@ def img_pre_pros(img_path, image_size):
 
 def main():
     parser = argparse.ArgumentParser()
+
+    # add arguments
     parser.add_argument('--cfg_path', type=str, default='./cfg/test_cfg.yaml',
                         help='config file path')
     parser.add_argument('--session_id', type=str, default='01',
-                        help='session id for client')
+                        help='session id for client') # (unused)
+    parser.add_argument('--model_path', type=str, default='./ckpt/ema_0.9999_446000.pt',)
+    parser.add_argument('--sty_img_path', type=str, default='./lan.png',)
+    parser.add_argument('--con_folder_path', type=str, default='./content_folder',)
+    parser.add_argument('--gen_text_stroke_path', type=str, default=None,) # (unused)
+    parser.add_argument('--total_txt_file', type=str, default='./wordlist.txt',)
+    parser.add_argument('--img_save_path', type=str, default='./result_web',)
+    parser.add_argument('--classifier_free', type=bool, default=False,) # (unused)
+    parser.add_argument('--cont_scale', type=float, default=3.0,) # (unused)
+    parser.add_argument('--sk_scale', type=float, default=3.0,) # (unused)
+
     parser = parser.parse_args()
-    session_id = parser.session_id
+
+    # get arguments
+    cfg_path = parser.cfg_path
+    session_id = parser.session_id # (unused)
+    model_path = parser.model_path
+    sty_img_path = parser.sty_img_path
+    con_folder_path = parser.con_folder_path
+    gen_text_stroke_path = parser.gen_text_stroke_path # (unused)
+    total_txt_file = parser.total_txt_file
+    img_save_path = parser.img_save_path
+    classifier_free = parser.classifier_free # (unused)
+    cont_gudiance_scale = parser.cont_scale # (unused)
+    sk_gudiance_scale = parser.sk_scale # (unused)
 
     # set up cfg
-    with open(parser.cfg_path, 'r') as f:
+    with open(cfg_path, 'r', encoding='utf-8') as f:
         cfg = yaml.load(f, Loader=yaml.FullLoader)
     cfg = AttrDict(create_cfg(cfg))
 
-    model_path = cfg.model_path
-    sty_img_path = cfg.sty_img_path
-    con_folder_path = cfg.con_folder_path
-    #gen_text_stroke_path = cfg.gen_text_stroke_path
-    total_txt_file = cfg.total_txt_file
-    img_save_path = cfg.img_save_path
-    #classifier_free = cfg.classifier_free
-    #cont_gudiance_scale = cfg.cont_scale
-    #sk_gudiance_scale = cfg.sk_scale
-
-    cfg.__delattr__('model_path')
-    cfg.__delattr__('sty_img_path')
-    cfg.__delattr__('con_folder_path')
-    #cfg.__delattr__('gen_text_stroke_path')
-    cfg.__delattr__('total_txt_file')
-    cfg.__delattr__('img_save_path')
-    #cfg.__delattr__('classifier_free')
-    #cfg.__delattr__('cont_scale')
-    #cfg.__delattr__('sk_scale')
-    con_folder_path = f'./{session_id}/content_folder'
-    # gen_text_stroke_path = f'./{session_id}/stroke-input.txt'
-    gen_text_stroke_path = None
-    img_save_path = f'./{session_id}/result_web'
 
     # set up distributed training
     dist_util.setup_dist()
@@ -73,6 +74,7 @@ def main():
     else:
         shutil.rmtree(img_save_path)
         os.mkdir(img_save_path)
+    os.chmod(img_save_path, 0o777)
 
     # create UNet model and diffusion
     logger.log("creating model and diffusion...")
@@ -100,7 +102,7 @@ def main():
     # set up dictionary for trained words
     char2idx = {}
     char_not_in_list = []
-    with open(total_txt_file, 'r') as f:
+    with open(total_txt_file, 'r', encoding='utf-8') as f:
         chars = f.readlines()
         for char in gen_txt:
             if char not in chars[0]:
@@ -118,13 +120,13 @@ def main():
     all_images = []
     all_labels = []
 
-    '''stroke_dict = {}
+    stroke_dict = {}
     if gen_text_stroke_path is not None:
         with open(gen_text_stroke_path, 'r') as f:
             gen_text_stroke = f.readlines()
             for gen_strokes in gen_text_stroke:
                 stroke_dict[gen_strokes[0]] = gen_strokes[1:]
-        f.close()'''
+        f.close()
 
     # for each batch
     # while len(all_images) * cfg.batch_size < cfg.num_samples:
@@ -135,13 +137,13 @@ def main():
 
         # logger.log("1...")
         # process input content image
-        con_img = th.tensor(img_pre_pros(con_folder_path + "/" + char + ".png", cfg.image_size), requires_grad=False).cuda().repeat(cfg.batch_size, 1, 1, 1)
+        con_img = th.tensor(img_pre_pros(con_folder_path + "/" + char + ".png", cfg.image_size), requires_grad=False, device=dist_util.dev()).repeat(cfg.batch_size, 1, 1, 1)
         # con_feat = model.con_encoder(con_img)
         # model_kwargs["y"] = con_feat
 
         # logger.log("2...")
         # process target style image
-        sty_img = th.tensor(img_pre_pros(sty_img_path, cfg.image_size), requires_grad=False).cuda().repeat(cfg.batch_size, 1, 1, 1)
+        sty_img = th.tensor(img_pre_pros(sty_img_path, cfg.image_size), requires_grad=False, device=dist_util.dev()).repeat(cfg.batch_size, 1, 1, 1)
         sty_feat = model.sty_encoder(sty_img)
         model_kwargs["sty"] = sty_feat
         model_kwargs["cont"] = con_img
@@ -157,7 +159,7 @@ def main():
             chars_stroke = th.empty([0, 32], dtype=th.float32)
 
             # read all stroke
-            with open(cfg.stroke_path, 'r') as f:
+            with open(cfg.stroke_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
                 # need to be in order????
                 if gen_text_stroke_path == None:
@@ -282,6 +284,7 @@ def main():
             img_name = gen_txt[idx] + ".png"
             #img_name = "%05d.png" % (idx)  #change the name
             img.save(os.path.join(img_save_path, img_name))
+            os.chmod(os.path.join(img_save_path, img_name), 0o777)
 
             # remove background
             #image = Image.open(os.path.join(img_save_path, img_name))
@@ -306,11 +309,11 @@ def main():
                         #pixels[x, y] = (0, 0, 0, a)
 
             #output_path = 'output.png'
-            img.save(os.path.join(img_save_path, img_name))'''
+            img.save(os.path.join(img_save_path, img_name))
+            os.chmod(os.path.join(img_save_path, img_name), 0o777)'''
 
             dist.barrier()
         logger.log("sampling complete")
-        os.system('chmod -R 777 ' + img_save_path)
 
 
 def create_cfg(cfg):

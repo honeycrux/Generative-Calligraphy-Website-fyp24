@@ -332,6 +332,8 @@ class GaussianDiffusion:
         self,
         model,
         shape,
+        # add con_img
+        # con_img,
         noise=None,
         clip_denoised=True,
         denoised_fn=None,
@@ -346,6 +348,8 @@ class GaussianDiffusion:
             model,
             shape,
             noise=noise,
+             # add con_img
+            # con_img=con_img,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
             cond_fn=cond_fn,
@@ -361,6 +365,8 @@ class GaussianDiffusion:
         model,
         shape,
         noise=None,
+        # add con_img
+        # con_img=None,
         clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
@@ -387,10 +393,14 @@ class GaussianDiffusion:
 
         for i in indices:
             t = th.tensor([i] * shape[0], device=device)
+            #concat img and con_img 
+            # concatenated_img = th.cat((con_img, img), dim=1)
             with th.no_grad():
                 out = self.p_sample(
                     model,
                     img,
+                    #concat img and con_img 
+                    # concatenated_img,
                     t,
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
@@ -398,6 +408,7 @@ class GaussianDiffusion:
                     model_kwargs=model_kwargs,
                 )
                 yield out
+                # img = out["sample"][:, 3:, :, :]
                 img = out["sample"]
 
     def ddim_sample(
@@ -450,6 +461,8 @@ class GaussianDiffusion:
         self,
         model,
         shape,
+        # add con_img
+        # con_img, #=None
         noise=None,
         clip_denoised=True,
         denoised_fn=None,
@@ -465,6 +478,8 @@ class GaussianDiffusion:
         for sample in self.ddim_sample_loop_progressive(
             model,
             shape,
+            # add con_img
+            # con_img=con_img,
             noise=noise,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -482,6 +497,8 @@ class GaussianDiffusion:
         model,
         shape,
         noise=None,
+        # add con_img
+        # con_img=None,
         clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
@@ -508,10 +525,13 @@ class GaussianDiffusion:
 
         for i in indices:
             t = th.tensor([i] * shape[0], device=device)
+            #concat img and con_img 
+            # concatenated_img = th.cat((con_img, img), dim=1)
             with th.no_grad():
                 out = self.ddim_sample(
                     model,
                     img,
+                    # concatenated_img,
                     t,
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
@@ -520,6 +540,7 @@ class GaussianDiffusion:
                     eta=eta,
                 )
                 yield out
+                # img = out["sample"][:, 3:, :, :]
                 img = out["sample"]
 
     def _vb_terms_bpd(

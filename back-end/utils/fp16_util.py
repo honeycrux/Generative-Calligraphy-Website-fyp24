@@ -91,14 +91,13 @@ def master_params_to_state_dict(
                 state_dict[name] = unflat_master_param
     else:
         state_dict = model.state_dict()
-        #print(model)
         for i, (name, _value) in enumerate(model.named_parameters()):
             assert name in state_dict
             state_dict[name] = master_params[i]
     return state_dict
 
 
-def state_dict_to_master_params(model, state_dict, use_fp16): #
+def state_dict_to_master_params(model, state_dict, use_fp16):
     if use_fp16:
         named_model_params = [
             (name, state_dict[name]) for name, _ in model.named_parameters()
@@ -106,9 +105,6 @@ def state_dict_to_master_params(model, state_dict, use_fp16): #
         param_groups_and_shapes = get_param_groups_and_shapes(named_model_params)
         master_params = make_master_params(param_groups_and_shapes)
     else:
-        #print(model.named_parameters())
-        #print(state_dict)
-        state_dict = model.state_dict()
         master_params = [state_dict[name] for name, _ in model.named_parameters()]
     return master_params
 
@@ -165,8 +161,8 @@ class MixedPrecisionTrainer:
         if self.use_fp16:
             loss_scale = 2 ** self.lg_loss_scale
             (loss * loss_scale).backward()
-        #else:
-            #loss.backward()
+        else:
+            loss.backward()
 
     def optimize(self, opt: th.optim.Optimizer):
         if self.use_fp16:
@@ -213,7 +209,7 @@ class MixedPrecisionTrainer:
         return np.sqrt(grad_norm) / grad_scale, np.sqrt(param_norm)
 
     def master_params_to_state_dict(self, master_params):
-        return master_params_to_state_dict( # master_params ????????
+        return master_params_to_state_dict(
             self.model, self.param_groups_and_shapes, master_params, self.use_fp16
         )
 

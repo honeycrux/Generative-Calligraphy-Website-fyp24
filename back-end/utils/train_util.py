@@ -42,7 +42,7 @@ class TrainLoop:
         classifier_free,
         total_train_step,
     ):
-        self.model = model #
+        self.model = model
         self.diffusion = diffusion
         self.data = data
         self.batch_size = batch_size
@@ -71,24 +71,18 @@ class TrainLoop:
 
         self.sync_cuda = th.cuda.is_available()
 
-        self._load_and_sync_parameters() #
-
-    def setup(self, unet_lora_params):
-
-        self.mp_trainer = MixedPrecisionTrainer( #
+        self._load_and_sync_parameters()
+        self.mp_trainer = MixedPrecisionTrainer(
             model=self.model,
             use_fp16=self.use_fp16,
-            fp16_scale_growth=self.fp16_scale_growth,
+            fp16_scale_growth=fp16_scale_growth,
         )
 
-        self.mp_trainer_model_params = unet_lora_params
-        self.mp_trainer_master_params = self.mp_trainer_model_params
-
-        '''self.opt = AdamW(
+        self.opt = AdamW(
             self.mp_trainer.master_params, lr=self.lr, weight_decay=self.weight_decay
-        )'''
+        )
         if self.resume_step:
-            #self._load_optimizer_state()
+            self._load_optimizer_state()
             # Model was resumed, either due to a restart or a checkpoint
             # being specified at the command line.
             self.ema_params = [
@@ -136,8 +130,9 @@ class TrainLoop:
             )
             self.model.load_state_dict(model_state)
 
+
     def _load_ema_parameters(self, rate):
-        ema_params = copy.deepcopy(self.mp_trainer.master_params) # ?????
+        ema_params = copy.deepcopy(self.mp_trainer.master_params)
 
         main_checkpoint = find_resume_checkpoint() or self.resume_checkpoint
         ema_checkpoint = find_ema_checkpoint(main_checkpoint, self.resume_step, rate)
@@ -148,11 +143,11 @@ class TrainLoop:
             state_dict = dist_util.load_state_dict(
                 ema_checkpoint, map_location=dist_util.dev()
             )
-            ema_params = self.mp_trainer.state_dict_to_master_params(state_dict) # ????
+            ema_params = self.mp_trainer.state_dict_to_master_params(state_dict)
 
         return ema_params
 
-    '''def _load_optimizer_state(self):
+    def _load_optimizer_state(self):
         main_checkpoint = find_resume_checkpoint() or self.resume_checkpoint
         opt_checkpoint = bf.join(
             bf.dirname(main_checkpoint), f"opt{self.resume_step:06}.pt"
@@ -164,7 +159,7 @@ class TrainLoop:
                 opt_checkpoint, map_location=dist_util.dev()
             )
 
-            self.opt.load_state_dict(state_dict)'''
+            self.opt.load_state_dict(state_dict)
 
     # Training Loop
             
@@ -181,7 +176,7 @@ class TrainLoop:
                     logger.dumpkvs()
                 if self.step % self.save_interval == 0:
                     self.save()
-                    th.save(self.model.con_encoder.state_dict(), "content_encoder/content_encoder.pt")
+                    # th.save(self.model.con_encoder.state_dict(), "content_encoder/content_encoder.pt")
                     if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
                         return
                 self.step += 1
@@ -198,7 +193,7 @@ class TrainLoop:
                     logger.dumpkvs()
                 if self.step % self.save_interval == 0:
                     self.save()
-                    th.save(self.model.con_encoder.state_dict(), "content_encoder/content_encoder.pt")
+                    # th.save(self.model.con_encoder.state_dict(), "content_encoder/content_encoder.pt")
                     if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
                         return
                 self.step += 1
@@ -215,26 +210,30 @@ class TrainLoop:
         self._anneal_lr()
         self.log_step()
 
-    def forward_backward(self, batch, cond):
+    def forward_backward(self, batch, cond):    # training losses in Gaussian Difussion
         self.mp_trainer.zero_grad()
 
         con_batch = batch[2]    # add for content encoding
         sty_batch = batch[1]
-        batch = batch[0]
+        batch = batch[0]    #x
+        # batch_with_content = th.cat((con_batch, batch), dim = 1)
+        
         assert batch.shape[0] == sty_batch.shape[0]
 
         for i in range(0, batch.shape[0], self.microbatch):
-            micro = batch[i: i + self.microbatch].to(dist_util.dev())
+            # micro = batch_with_content[i: i + self.microbatch].to(dist_util.dev())
+            micro = batch[i: i + self.microbatch].to(dist_util.dev()) 
             micro_cond = {
                 k: v[i: i + self.microbatch].to(dist_util.dev())
                 for k, v in cond.items()
             }
             micro_sty = sty_batch[i: i + self.microbatch].to(dist_util.dev())
             micro_cond['sty'] = self.ddp_model.module.sty_encoder(micro_sty.clone().detach())
+            micro_cond['cont'] = con_batch
 
             # content encoding
-            micro_con = con_batch[i: i + self.microbatch].to(dist_util.dev())
-            micro_cond['y'] = self.ddp_model.module.con_encoder(micro_con.clone().detach())
+            # micro_con = con_batch[i: i + self.microbatch].to(dist_util.dev())
+            # micro_cond['y'] = self.ddp_model.module.con_encoder(micro_con.clone().detach())
 
             last_batch = (i + self.microbatch) >= batch.shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
@@ -281,7 +280,7 @@ class TrainLoop:
         logger.logkv("samples", (self.step + self.resume_step + 1) * self.global_batch)
 
     def save(self):
-        def save_checkpoint(rate, params): # cannot save
+        def save_checkpoint(rate, params):
             state_dict = self.mp_trainer.master_params_to_state_dict(params)
             if dist.get_rank() == 0:
                 logger.log(f"saving model {rate}...")

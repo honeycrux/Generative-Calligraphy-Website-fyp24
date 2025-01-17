@@ -12,7 +12,7 @@ cfg = {
 class ContentEncoder(nn.Module):
     def __init__(self, con_dim=128):
         super(ContentEncoder, self).__init__()
-        self.features = make_layers(cfg['vgg11'], True)
+        self.features = make_layers(cfg['vgg13'], True)
         self.cont = nn.Linear(512, con_dim)
 
         self._initialize_weights()

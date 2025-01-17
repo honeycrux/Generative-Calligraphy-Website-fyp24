@@ -397,7 +397,7 @@ class UNetWithStyEncoderModel(nn.Module):
             num_heads_upsample = num_heads
 
         self.image_size = image_size
-        self.in_channels = in_channels
+        self.in_channels = in_channels*2
         self.model_channels = model_channels
         self.out_channels = out_channels
         self.num_res_blocks = num_res_blocks
@@ -424,32 +424,34 @@ class UNetWithStyEncoderModel(nn.Module):
 
             # style encoder & embedding
             self.sty_encoder = StyleEncoder(sty_dim=128)
-            self.sty_emb_dim = time_embed_dim // 2
+            # self.sty_emb_dim = time_embed_dim // 2
+            self.sty_emb_dim = time_embed_dim 
             self.sty_emb = nn.Sequential(
                 linear(128, time_embed_dim),
                 nn.SiLU(),
                 linear(time_embed_dim, self.sty_emb_dim),
+                # linear(time_embed_dim, self.sty_emb_dim*2), # or both time_embed_dim
             )
 
             # stroke embedding
-            self.stroke_emb_dim = time_embed_dim // 4
-            self.stroke_emb = nn.Embedding(32, self.stroke_emb_dim // 32)
+            # self.stroke_emb_dim = time_embed_dim // 4
+            # self.stroke_emb = nn.Embedding(32, self.stroke_emb_dim // 32)
             
             # content encoder & embedding
-            self.con_encoder = ContentEncoder(con_dim=128)
-            self.con_emb_dim = time_embed_dim // 4
-            self.con_emb = nn.Sequential(
-                linear(128, time_embed_dim),
-                nn.SiLU(),
-                linear(time_embed_dim, self.con_emb_dim),
-            )
+            # self.con_encoder = ContentEncoder(con_dim=128)
+            # self.con_emb_dim = time_embed_dim // 4
+            # self.con_emb = nn.Sequential(
+            #     linear(128, time_embed_dim),
+            #     nn.SiLU(),
+            #     linear(time_embed_dim, self.con_emb_dim),
+            # )
 
             # self.label_emb_dim = time_embed_dim // 4
             # self.label_emb = nn.Embedding(self.num_classes, self.label_emb_dim)
 
         ch = input_ch = int(channel_mult[0] * model_channels)
         self.input_blocks = nn.ModuleList(
-            [TimestepEmbedSequential(conv_nd(dims, in_channels, ch, 3, padding=1))]
+            [TimestepEmbedSequential(conv_nd(dims, self.in_channels, ch, 3, padding=1))]
         )
         self._feature_size = ch
         input_block_chans = [ch]
@@ -595,7 +597,9 @@ class UNetWithStyEncoderModel(nn.Module):
         self.middle_block.apply(convert_module_to_f32)
         self.output_blocks.apply(convert_module_to_f32)
 
-    def forward(self, x, timesteps, y, sty, stroke=None, mask_y=None, mask_stroke=None):
+    def forward(self, x, timesteps, sty, cont, stroke=None, mask_y=None, mask_stroke=None): # x: original image; y: contents
+        # content_cond = x.clone()[:, :3, :, :]
+        x = th.cat((x, cont), dim=1)
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
 
@@ -605,27 +609,31 @@ class UNetWithStyEncoderModel(nn.Module):
 
         # Style Embedding
         sty_emb = th.zeros([emb.shape[0], self.sty_emb_dim], device=emb.device)
-        sty_emb[(~mask_y) | (~mask_stroke)] = self.sty_emb(sty[(~mask_y) | (~mask_stroke)])
+        sty_emb = self.sty_emb(sty)
+        #sty_emb[(~mask_y) | (~mask_stroke)] = self.sty_emb(sty[(~mask_y) | (~mask_stroke)])
 
         # Content Embedding
-        con_emb = th.zeros([emb.shape[0], self.con_emb_dim], device=emb.device)
-        #con_emb[(~mask_y) | (~mask_stroke)] = self.con_emb(y[(~mask_y) | (~mask_stroke)])
-        con_emb[~mask_y] = self.con_emb(y[~mask_y])
+        # con_emb = th.zeros([emb.shape[0], self.con_emb_dim], device=emb.device)
+        # #con_emb[(~mask_y) | (~mask_stroke)] = self.con_emb(y[(~mask_y) | (~mask_stroke)])
+        # con_emb[~mask_y] = self.con_emb(y[~mask_y])
 
         # Stroke Embedding
-        stroke_emb = th.zeros([emb.shape[0], self.stroke_emb_dim], device=emb.device)
-        stroke = stroke.reshape(emb.shape[0], 32, 1)
-        stroke_emb[~mask_stroke] = (stroke[~mask_stroke] * self.stroke_emb.weight).flatten(1)
+        # stroke_emb = th.zeros([emb.shape[0], self.stroke_emb_dim], device=emb.device)
+        # stroke = stroke.reshape(emb.shape[0], 32, 1)
+        # stroke_emb[~mask_stroke] = (stroke[~mask_stroke] * self.stroke_emb.weight).flatten(1)
 
-        emb = emb + th.cat([con_emb, stroke_emb, sty_emb], dim=1)
-
+        # emb = emb + th.cat([con_emb, stroke_emb, sty_emb], dim=1)
+        emb = emb + sty_emb
+        
         h = x.type(self.dtype)
-        for module in self.input_blocks:
+        for module in self.input_blocks:  
             h = module(h, emb)
             hs.append(h)
+        
         h = self.middle_block(h, emb)
         for module in self.output_blocks:
             h = th.cat([h, hs.pop()], dim=1)
             h = module(h, emb)
         h = h.type(x.dtype)
-        return self.out(h)  # zt_theta
+        # return th.cat((content_cond, self.out(h)), dim = 1)  # zt_theta
+        return self.out(h) 

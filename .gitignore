@@ -1,0 +1,14 @@
+# Checkpoint files referenced in code or config
+ckpt/
+pretrained_models/
+content_encoder/
+trained_models_finetune/
+trained_models_test/
+
+# Auxiliary files
+outputs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class

@@ -48,7 +48,7 @@ def load_data(
         logger.log('=' * 20)
 
         chars_stroke = np.empty([0, 32], dtype=np.float32)
-        with open(stroke_path, 'r') as f:
+        with open(stroke_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             for line in lines:
                 strokes = line.split(" ")[1:-1]
@@ -210,7 +210,7 @@ class ImageDataset(Dataset):
 
             # stroke
             if self.chars_stroke is not None:
-                out_dict["stroke"] = self.chars_stroke[self.local_classes[idx]]
+                # out_dict["stroke"] = self.chars_stroke[self.local_classes[idx]]
                 out_dict["mask_stroke"] = False
             return [np.transpose(arr, [2, 0, 1]), np.transpose(sty_arr, [2, 0, 1]), np.transpose(con_arr, [2, 0, 1])], out_dict  #change this
 

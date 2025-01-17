@@ -1,6 +1,7 @@
 import io
 import os
 import socket
+import platform
 
 import blobfile as bf
 from mpi4py import MPI
@@ -21,7 +22,7 @@ def setup_dist():
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{(MPI.COMM_WORLD.Get_rank()) % GPUS_PER_NODE}"
 
     comm = MPI.COMM_WORLD
-    backend = "gloo" if not th.cuda.is_available() else "nccl"
+    backend = "nccl" if th.cuda.is_available() and platform.system() != "Windows" else "gloo"
 
     if backend == "gloo":
         hostname = "localhost"

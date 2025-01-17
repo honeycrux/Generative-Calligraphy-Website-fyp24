@@ -21,7 +21,7 @@ class StyleEncoder(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = F.adaptive_avg_pool2d(x, (1, 1))
-        flat = x.view(x.size(0), -1)
+        flat = x.view(x.size(0), -1) # 1-dimension flat
         cont = self.cont(flat)
 
         return cont
@@ -38,7 +38,8 @@ class StyleEncoder(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
-
+      
+    
 def make_layers(cfg, batch_norm=False):
     layers = []
     in_channels = 3
@@ -53,3 +54,4 @@ def make_layers(cfg, batch_norm=False):
                 layers += [conv2d, nn.ReLU(inplace=False)]
             in_channels = v
     return nn.Sequential(*layers)
+

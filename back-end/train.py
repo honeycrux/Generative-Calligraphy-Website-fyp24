@@ -21,7 +21,7 @@ def main():
     parser = parser.parse_args()
 
     # set up configuration cfg
-    with open(parser.cfg_path, 'r') as f:
+    with open(parser.cfg_path, 'r', encoding='utf-8') as f:
         cfg = yaml.load(f, Loader=yaml.FullLoader)
     cfg = AttrDict(create_cfg(cfg))
     train_step = cfg.train_step
