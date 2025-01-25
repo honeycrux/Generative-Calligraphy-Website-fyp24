@@ -10,7 +10,7 @@ Install Miniconda (See [Miniconda documentation](https://docs.conda.io/en/latest
 
 Create a conda environment and activate it. Conda will try its best to make sure the versions of packages are compatible with each other and Python 3.9 with PyTorch 1.13.1+cu116.
 ```bash
-conda env create --name fyp23 --file=environment.yml
+conda env create --name fyp23 --file=environment.yml -y
 conda activate fyp23
 ```
 

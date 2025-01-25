@@ -1,8 +1,8 @@
 name: fyp23
 channels:
-  - conda-forge
   - pytorch
   - nvidia
+  - conda-forge
 dependencies:
   - python=3.9
   - pytorch=1.13.1
@@ -17,7 +17,7 @@ dependencies:
   - tensorboardX
   - blobfile>=1.0.5
   - mpi4py
-  - openmpi
+  - msmpi
   - attrdict
   - PyYAML
   # New-Font-Generation-from-Classic-Calligraphy
