@@ -17,7 +17,7 @@ dependencies:
   - tensorboardX
   - blobfile>=1.0.5
   - mpi4py
-  - msmpi
+  - openmpi
   - attrdict
   - PyYAML
   # New-Font-Generation-from-Classic-Calligraphy
