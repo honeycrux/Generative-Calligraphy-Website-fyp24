@@ -1,28 +1,7 @@
-name: fyp23
+name: generative-calligraphy-website
 channels:
-  - pytorch
-  - nvidia
   - conda-forge
 dependencies:
-  - python=3.9
-  - pytorch=1.13.1
-  - pytorch-cuda=11.6
-  - torchvision=0.14.1
-  - torchaudio=0.13.1
-  # Font-diff
-  - tqdm
-  - opencv
-  - scikit-learn
-  - pillow
-  - tensorboardX
-  - blobfile>=1.0.5
-  - mpi4py
-  - openmpi
-  - attrdict
-  - PyYAML
-  # New-Font-Generation-from-Classic-Calligraphy
-  - fonttools
-  - matplotlib
-  # Font-Transform-Website
-  - flask
-  - Flask-Cors
+  - python=3.13
+  - fastapi[standard]
+  - pytest

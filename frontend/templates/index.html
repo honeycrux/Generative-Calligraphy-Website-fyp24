@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Font Transform Website</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', path='/styles.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
 
 </head>
@@ -20,61 +20,6 @@
                 <span>An AI generator for Lanting Xu computer font, a piece of well-known Chinese classic calligraphy
                     work from Wang Xizhi.</span>
             </div>
-
-            <!--audio id="myAudio" src="./static/pure_music.mp3"></audio>
-
-            <div class="music-button-container">
-                <button id="playButton">Play Music</button>
-                <button id="stopButton">Stop Music</button>
-                <button id="replayButton">Replay</button>
-            </div>
-            
-            <script>
-              var audio = document.getElementById("myAudio");
-              var playButton = document.getElementById("playButton");
-              var stopButton = document.getElementById("stopButton");
-              var replayButton = document.getElementById("replayButton");
-              audio.volume = 0.5; // volume 50%
-            
-              audio.addEventListener("ended", function() {
-                audio.currentTime = 0;
-              });
-            
-              playButton.addEventListener("click", function() {
-                audio.play()
-                  .then(() => {
-                    // Audio playback started successfully
-                  })
-                  .catch(error => {
-                    // Handle any errors that may occur during playback
-                    console.error("Failed to play the audio:", error);
-                  });
-              });
-            
-              stopButton.addEventListener("click", function() {
-                audio.pause();
-                audio.currentTime = 0;
-              });
-            
-              replayButton.addEventListener("click", function() {
-                audio.currentTime = 0;
-                audio.play()
-                  .then(() => {
-                    // Audio playback started successfully
-                  })
-                  .catch(error => {
-                    // Handle any errors that may occur during playback
-                    console.error("Failed to replay the audio:", error);
-                  });
-              });
-            </script -->
-
-            <!--div class="audio-container">
-                <audio id="audioPlayer" controls autoplay>
-                  <source src="./static/pure_music.mp3" type="audio/mpeg">
-                  Your browser does not support the audio element.
-                </audio>
-              </div-->
 
             <div class="input-output-container">
 
@@ -170,8 +115,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <!--audio id="lanSong" src="{{ url_for('static', filename='lantingxu_song.mp3') }}"></audio-->
+    <script src="{{ url_for('static', path='/script.js') }}"></script>
 
 </body>
 

@@ -22,7 +22,7 @@ Using the link above, download trained_models_finetune > New Model > `ema_0.9999
 
 ### Run Server
 
-Run `python server2.py`.
+(Coming soon)
 
 ## Links
 
