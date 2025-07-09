@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from .running_state import RunningState
-from .generation_result import GenerationResult
 
 
 """ Inheritance structure
@@ -28,7 +27,6 @@ class JobInfo(BaseModel, ABC):
 
     job_id: UUID
     time_start_to_queue: datetime
-    generation_result: GenerationResult
 
 
 class WaitingJob(JobInfo):
@@ -41,7 +39,6 @@ class WaitingJob(JobInfo):
         return WaitingJob(
             job_id=job_id,
             time_start_to_queue=datetime.now(),
-            generation_result=GenerationResult.create(),
             place_in_queue=place_in_queue,
         )
 
@@ -57,7 +54,6 @@ class RunningJob(JobInfo):
         return RunningJob(
             job_id=waiting_job.job_id,
             time_start_to_queue=waiting_job.time_start_to_queue,
-            generation_result=waiting_job.generation_result,
             time_start_to_run=datetime.now(),
             running_state=RunningState.GENERATING,
         )
@@ -66,7 +62,6 @@ class RunningJob(JobInfo):
         return RunningJob(
             job_id=self.job_id,
             time_start_to_queue=self.time_start_to_queue,
-            generation_result=self.generation_result,
             time_start_to_run=self.time_start_to_run,
             running_state=running_state,
         )
@@ -84,13 +79,10 @@ class CompletedJob(StoppedJob):
     time_start_to_run: datetime
 
     @staticmethod
-    def of(
-        running_job: RunningJob, generation_result: GenerationResult
-    ) -> "CompletedJob":
+    def of(running_job: RunningJob) -> "CompletedJob":
         return CompletedJob(
             job_id=running_job.job_id,
             time_start_to_queue=running_job.time_start_to_queue,
-            generation_result=generation_result,
             time_start_to_run=running_job.time_start_to_run,
             time_end=datetime.now(),
         )
@@ -107,7 +99,6 @@ class FailedJob(StoppedJob):
         return FailedJob(
             job_id=running_job.job_id,
             time_start_to_queue=running_job.time_start_to_queue,
-            generation_result=running_job.generation_result,
             time_start_to_run=running_job.time_start_to_run,
             time_end=datetime.now(),
             error_message=error_message,
@@ -124,7 +115,6 @@ class CancelledJob(StoppedJob):
         return CancelledJob(
             job_id=job.job_id,
             time_start_to_queue=job.time_start_to_queue,
-            generation_result=job.generation_result,
             time_start_to_run=(
                 job.time_start_to_run if isinstance(job, RunningJob) else None
             ),

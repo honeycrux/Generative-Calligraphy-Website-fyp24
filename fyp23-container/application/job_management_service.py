@@ -9,11 +9,12 @@ from application.port_in.job_management_port import JobManagementPort
 from application.port_out.font_generation_application_port import (
     FontGenerationApplicationPort,
 )
+from application.port_out.image_repository_port import ImageRepositoryPort
 from domain.entity.job import Job
 from domain.entity.job_queue import JobQueue
 from domain.entity.job_table import JobTable
-from domain.value.generation_result import GenerationResult
 from domain.value.font_gen_service_config import FontGenServiceConfig
+from domain.value.image_data import ImageData
 from domain.value.job_info import (
     CancelledJob,
     CompletedJob,
@@ -31,6 +32,7 @@ class JobManagementService(JobManagementPort):
     __job_table: JobTable
     __job_queue: JobQueue
     __font_generation_application_port: FontGenerationApplicationPort
+    __image_repository_port: ImageRepositoryPort
     __operate_queue_thread: threading.Thread
     __cleanup_job_table_thread: threading.Thread
 
@@ -38,9 +40,11 @@ class JobManagementService(JobManagementPort):
         self,
         font_generation_application_port: FontGenerationApplicationPort,
         font_gen_service_config: FontGenServiceConfig,
+        image_repository_port: ImageRepositoryPort,
     ):
         self.__config = font_gen_service_config
         self.__font_generation_application_port = font_generation_application_port
+        self.__image_repository_port = image_repository_port
 
         max_retain_time = timedelta(seconds=font_gen_service_config.max_retain_time)
         self.__job_table = JobTable(max_retain_time=max_retain_time)
@@ -73,10 +77,23 @@ class JobManagementService(JobManagementPort):
             assert isinstance(
                 job.job_info, RunningJob
             ), "Job info should be RunningJob at this point"
+
+            # Update job info with the new state
             job.update(
                 job_status=JobStatus.RUNNING,
                 job_info=job.job_info.of_state(state),
             )
+
+        def on_new_word_result(job: Job, word: str, image_data: Optional[ImageData]):
+            image_id = image_data.image_id if image_data else None
+            success = image_data is not None
+
+            # Add the word result to the job's generation result
+            job.add_word_result(word=word, success=success, image_id=image_id)
+
+            if success and image_data is not None:
+                # If the image data is available, save it to the file system
+                self.__image_repository_port.save_image(image_data=image_data)
 
         async def operate_queue() -> None:
             if self.__job_queue.size() < 1:
@@ -111,6 +128,9 @@ class JobManagementService(JobManagementPort):
                 job_input=job.job_input,
                 job_info=job.job_info,
                 on_new_state=lambda state: on_new_state(job, state),
+                on_new_word_result=lambda word, image_data: on_new_word_result(
+                    job=job, word=word, image_data=image_data
+                ),
             )
 
             # Add the coroutine to the job table
@@ -120,12 +140,17 @@ class JobManagementService(JobManagementPort):
             try:
                 result = await task_coroutine
 
-                if isinstance(result, GenerationResult):
-                    # Task was successful
-                    job.update(
-                        job_status=JobStatus.COMPLETED,
-                        job_info=CompletedJob.of(job.job_info, result),
-                    )
+                if isinstance(result, bool):
+                    if result:
+                        # Task was successful
+                        job.update(
+                            job_status=JobStatus.COMPLETED,
+                            job_info=CompletedJob.of(job.job_info),
+                        )
+                    else:
+                        raise ValueError(
+                            "Task returned False, but no error message was provided."
+                        )
 
                 if isinstance(result, str):
                     # Task failed with an error message
@@ -171,8 +196,15 @@ class JobManagementService(JobManagementPort):
         return operate_queue_thread
 
     def continuously_cleanup_job_table(self) -> threading.Thread:
+        def on_delete_resource(image_id: UUID) -> None:
+            # Delete the image resource from the repository
+            self.__image_repository_port.delete_image(image_id=image_id)
+
         def cleanup_job_table() -> None:
-            self.__job_table.cleanup()
+            # Clean up job table
+            self.__job_table.cleanup(on_delete_resource=on_delete_resource)
+
+            # Wait for the configured max retain time before the next cleanup
             time.sleep(self.__config.max_retain_time)
 
         def always_cleanup_job_table() -> None:

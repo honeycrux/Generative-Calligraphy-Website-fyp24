@@ -1,6 +1,6 @@
 from asyncio import Task
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 from uuid import UUID
 
 from domain.entity.job import Job
@@ -66,7 +66,7 @@ class JobTable:
             raise JobTableAccessException(f"Coroutine for job {job_id} already exists.")
         self.__coroutines[job_id] = coroutine
 
-    def cleanup(self) -> None:
+    def cleanup(self, on_delete_resource: Callable[[UUID], None]) -> None:
         current_time = datetime.now()
         to_remove = [
             job_id
@@ -75,8 +75,15 @@ class JobTable:
             and (current_time - job.job_info.time_end) > self.__max_retain_time
         ]
         for job_id in to_remove:
-            self.__jobs.pop(job_id, None)
+            # Remove the job and its associated coroutine
+            job = self.__jobs.pop(job_id, None)
             self.__coroutines.pop(job_id, None)
+
+            # Clean up resources associated with the job
+            if job is not None:
+                for word_result in job.generation_result.word_results:
+                    if word_result.image_id is not None:
+                        on_delete_resource(word_result.image_id)
 
     def __get_coroutine(self, job_id: UUID) -> Optional[Task]:
         if job_id not in self.__coroutines:

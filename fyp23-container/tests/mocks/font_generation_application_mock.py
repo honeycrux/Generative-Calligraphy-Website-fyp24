@@ -1,10 +1,13 @@
 from asyncio import Task
 import asyncio
-from typing import Callable, Union
+from typing import Callable, Optional, Union
+from uuid import uuid4
+from PIL import Image
 
 from application.port_out.font_generation_application_port import (
     FontGenerationApplicationPort,
 )
+from domain.value.image_data import ImageData
 from domain.value.generation_result import GenerationResult, WordResult
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
@@ -25,29 +28,33 @@ class FontGenerationApplicationMock(FontGenerationApplicationPort):
         job_input: JobInput,
         job_info: RunningJob,
         on_new_state: Callable[[RunningState], None],
-    ) -> Union[GenerationResult, str]:
+        on_new_word_result: Callable[[str, Optional[ImageData]], None],
+    ) -> Union[bool, str]:
         # Simulate async operation
         await asyncio.sleep(self.run_seconds)
 
         if not self.simulate_success:
-            # Simulate a failure
+            # Simulate failure
             return "Simulated failure"
 
-        # Create a mock result
-        job_id = job_info.job_id
-        result = GenerationResult(
-            word_results=[
-                WordResult(word=char, success=True, url=f"{job_id}/{char}.png")
-                for char in job_input.input_text
-            ]
-        )
+        # Create some characters
+        for char in job_input.input_text:
+            mock_image_id = uuid4()
+            mock_image = Image.new("RGBA", size=(0, 0), color=0)
 
-        return result
+            on_new_word_result(
+                char, ImageData(image_id=mock_image_id, image=mock_image)
+            )
+
+        return True
 
     def generate_font(
         self,
         job_input: JobInput,
         job_info: RunningJob,
         on_new_state: Callable[[RunningState], None],
-    ) -> Task[Union[GenerationResult, str]]:
-        return asyncio.create_task(self.__generation(job_input, job_info, on_new_state))
+        on_new_word_result: Callable[[str, Optional[ImageData]], None],
+    ) -> Task[Union[bool, str]]:
+        return asyncio.create_task(
+            self.__generation(job_input, job_info, on_new_state, on_new_word_result)
+        )

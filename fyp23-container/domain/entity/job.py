@@ -1,6 +1,8 @@
+import copy
+from typing import Optional
 from uuid import UUID
 
-from domain.exception.job_status_info_mismatch import JobStatusInfoMismatch
+from domain.value.generation_result import GenerationResult, WordResult
 from domain.value.job_info import (
     CancelledJob,
     CompletedJob,
@@ -18,6 +20,7 @@ class Job:
     __job_input: JobInput
     __job_status: JobStatus
     __job_info: JobInfo
+    __generation_result: GenerationResult
 
     def __init__(
         self,
@@ -31,6 +34,7 @@ class Job:
         self.__job_input = job_input
         self.__job_status = job_status
         self.__job_info = job_info
+        self.__generation_result = GenerationResult.new()
 
     def update(
         self,
@@ -41,21 +45,35 @@ class Job:
         self.__job_status = job_status
         self.__job_info = job_info
 
+    def add_word_result(
+        self, word: str, success: bool, image_id: Optional[UUID]
+    ) -> None:
+        self.__generation_result.add_word_result(WordResult(word, success, image_id))
+
     @property
     def job_id(self) -> UUID:
-        return self.__job_id
+        # Create a deep copy to prevent external modification
+        return copy.deepcopy(self.__job_id)
 
     @property
     def job_input(self) -> JobInput:
-        return self.__job_input
+        # Create a deep copy to prevent external modification
+        return copy.deepcopy(self.__job_input)
 
     @property
     def job_status(self) -> JobStatus:
-        return self.__job_status
+        # Create a deep copy to prevent external modification
+        return copy.deepcopy(self.__job_status)
 
     @property
     def job_info(self) -> JobInfo:
-        return self.__job_info
+        # Create a deep copy to prevent external modification
+        return copy.deepcopy(self.__job_info)
+
+    @property
+    def generation_result(self) -> GenerationResult:
+        # Create a deep copy to prevent external modification
+        return copy.deepcopy(self.__generation_result)
 
     @staticmethod
     def validate_status_info(
@@ -63,22 +81,16 @@ class Job:
         job_info: JobInfo,
     ) -> None:
         if job_status == JobStatus.WAITING and not isinstance(job_info, WaitingJob):
-            raise JobStatusInfoMismatch(
-                "Job status is WAITING but job info is not a WaitingJob."
-            )
+            raise ValueError("Job status is WAITING but job info is not a WaitingJob.")
         if job_status == JobStatus.RUNNING and not isinstance(job_info, RunningJob):
-            raise JobStatusInfoMismatch(
-                "Job status is RUNNING but job info is not a RunningJob."
-            )
+            raise ValueError("Job status is RUNNING but job info is not a RunningJob.")
         if job_status == JobStatus.COMPLETED and not isinstance(job_info, CompletedJob):
-            raise JobStatusInfoMismatch(
+            raise ValueError(
                 "Job status is COMPLETED but job info is not a CompletedJob."
             )
         if job_status == JobStatus.FAILED and not isinstance(job_info, FailedJob):
-            raise JobStatusInfoMismatch(
-                "Job status is FAILED but job info is not a FailedJob."
-            )
+            raise ValueError("Job status is FAILED but job info is not a FailedJob.")
         if job_status == JobStatus.CANCELLED and not isinstance(job_info, CancelledJob):
-            raise JobStatusInfoMismatch(
+            raise ValueError(
                 "Job status is CANCELLED but job info is not a CancelledJob."
             )
