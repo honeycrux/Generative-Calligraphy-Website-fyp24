@@ -1,9 +1,9 @@
-from dataclasses import dataclass
 from uuid import UUID
-from PIL import Image
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True)
-class ImageData:
+class ImageData(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     image_id: UUID
-    image: Image.Image
+    image_bytes: bytes

@@ -124,7 +124,7 @@ class JobManagementService(JobManagementPort):
             ), "Job info should be RunningJob at this point"
 
             # Start the font generation task
-            task_coroutine = self.__font_generation_application_port.generate_font(
+            task_coroutine = self.__font_generation_application_port.generate_text(
                 job_input=job.job_input,
                 job_info=job.job_info,
                 on_new_state=lambda state: on_new_state(job, state),

@@ -8,7 +8,6 @@ from application.port_out.font_generation_application_port import (
     FontGenerationApplicationPort,
 )
 from domain.value.image_data import ImageData
-from domain.value.generation_result import GenerationResult, WordResult
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
@@ -43,12 +42,13 @@ class FontGenerationApplicationMock(FontGenerationApplicationPort):
             mock_image = Image.new("RGBA", size=(0, 0), color=0)
 
             on_new_word_result(
-                char, ImageData(image_id=mock_image_id, image=mock_image)
+                char,
+                ImageData(image_id=mock_image_id, image_bytes=mock_image.tobytes()),
             )
 
         return True
 
-    def generate_font(
+    def generate_text(
         self,
         job_input: JobInput,
         job_info: RunningJob,

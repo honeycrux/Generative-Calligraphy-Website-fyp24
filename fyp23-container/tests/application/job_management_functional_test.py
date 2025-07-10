@@ -14,8 +14,10 @@ from domain.entity.job import Job
 from domain.value.font_gen_service_config import FontGenServiceConfig
 from domain.value.job_input import JobInput
 from domain.value.job_status import JobStatus
-from tests.mocks.font_generation_application_mock import FontGenerationApplicationMock
-from tests.mocks.image_repository_mock import ImageRepositoryMock
+from tests.application.font_generation_application_mock import (
+    FontGenerationApplicationMock,
+)
+from tests.application.image_repository_mock import ImageRepositoryMock
 
 
 ### Constants ###

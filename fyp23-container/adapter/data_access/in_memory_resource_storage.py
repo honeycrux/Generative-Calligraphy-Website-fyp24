@@ -1,12 +1,11 @@
 from typing import Optional
 from uuid import UUID
-from PIL import Image
 
 from application.port_out.image_repository_port import ImageRepositoryPort
 from domain.value.image_data import ImageData
 
 
-class ImageRepositoryMock(ImageRepositoryPort):
+class InMemoryResourceStorage(ImageRepositoryPort):
     __files: dict[UUID, ImageData]
 
     def __init__(self):

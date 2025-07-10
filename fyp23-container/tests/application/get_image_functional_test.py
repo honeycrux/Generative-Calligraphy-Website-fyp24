@@ -6,7 +6,7 @@ from application.port_in.get_image_port import GetImagePort
 from application.port_out.image_repository_port import ImageRepositoryPort
 from application.get_image_service import GetImageService
 from domain.value.image_data import ImageData
-from tests.mocks.image_repository_mock import ImageRepositoryMock
+from tests.application.image_repository_mock import ImageRepositoryMock
 
 
 ### Fixtures ###
@@ -20,7 +20,7 @@ def image_repository_port() -> ImageRepositoryPort:
     mock_image_id = UUID("12345678-1234-5678-1234-567812345678")
     mock_image = Image.new("RGBA", size=(0, 0), color=0)
     image_repository_mock.save_image(
-        ImageData(image_id=mock_image_id, image=mock_image)
+        ImageData(image_id=mock_image_id, image_bytes=mock_image.tobytes())
     )
 
     return image_repository_mock

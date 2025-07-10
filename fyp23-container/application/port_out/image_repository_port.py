@@ -1,7 +1,6 @@
 from abc import ABC
 from typing import Optional
 from uuid import UUID
-from PIL import Image
 
 from domain.value.image_data import ImageData
 
@@ -24,6 +23,7 @@ class ImageRepositoryPort(ABC):
     def save_image(self, image_data: ImageData) -> None:
         """
         Save an image.
+        Saving to an existing ID will overwrite it.
 
         :param image_data: The data of the image to save.
         """

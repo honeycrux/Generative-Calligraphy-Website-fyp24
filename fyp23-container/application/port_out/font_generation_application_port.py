@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from asyncio import Task
 from typing import Callable, Optional, Union
 
-from domain.value.generation_result import GenerationResult
 from domain.value.image_data import ImageData
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
@@ -15,7 +14,7 @@ class FontGenerationApplicationPort(ABC):
     """
 
     @abstractmethod
-    def generate_font(
+    def generate_text(
         self,
         job_input: JobInput,
         job_info: RunningJob,
@@ -23,7 +22,7 @@ class FontGenerationApplicationPort(ABC):
         on_new_word_result: Callable[[str, Optional[ImageData]], None],
     ) -> Task[Union[bool, str]]:
         """
-        Generate a font with the specified name and size.
+        Generate text based on the job input.
 
         :param job_input: The input for the job.
         :param job_info: The information about the job.
