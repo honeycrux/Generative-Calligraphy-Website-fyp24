@@ -45,10 +45,8 @@ class Job:
         self.__job_status = job_status
         self.__job_info = job_info
 
-    def add_word_result(
-        self, word: str, success: bool, image_id: Optional[UUID]
-    ) -> None:
-        self.__generation_result.add_word_result(WordResult(word, success, image_id))
+    def add_word_result(self, word: str, image_id: Optional[UUID]) -> None:
+        self.__generation_result.add_word_result(WordResult(word, image_id))
 
     @property
     def job_id(self) -> UUID:

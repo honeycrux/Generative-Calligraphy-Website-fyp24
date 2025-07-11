@@ -1,27 +1,19 @@
 from asyncio import Task
 import asyncio
 from typing import Callable, Union
-from PIL import Image
 
-from application.port_out.font_generation_application_port import (
-    FontGenerationApplicationPort,
-)
 from domain.value.image_data import ImageData
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
 from domain.value.image_result import ImageResult
+from application.port_out.font_generation_application_port import (
+    FontGenerationApplicationPort,
+)
+from fyp23_model.sample import SampleResult, load_character_data, run_sample
 
 
-class FontGenerationApplicationMock(FontGenerationApplicationPort):
-    run_seconds: float  # Simulated wait time
-    simulate_success: bool  # Simulated success flag
-
-    def __init__(self, run_seconds: float, simulate_success: bool):
-        super().__init__()
-        self.run_seconds = run_seconds
-        self.simulate_success = simulate_success
-
+class FontGenerationApplication(FontGenerationApplicationPort):
     async def __generation(
         self,
         job_input: JobInput,
@@ -29,23 +21,35 @@ class FontGenerationApplicationMock(FontGenerationApplicationPort):
         on_new_state: Callable[[RunningState], None],
         on_new_word_result: Callable[[ImageResult], None],
     ) -> Union[bool, str]:
-        # Simulate async operation
-        await asyncio.sleep(self.run_seconds)
-
-        if not self.simulate_success:
-            # Simulate failure
-            return "Simulated failure"
-
-        # Create some characters
-        for char in job_input.input_text:
-            mock_image = Image.new("RGBA", size=(0, 0), color=0)
-
-            on_new_word_result(
-                ImageResult(
-                    word=char,
-                    image_data=ImageData.new(image_bytes=mock_image.tobytes()),
+        def on_new_result(sample_result: SampleResult):
+            on_new_state(
+                RunningState.generating(
+                    current=sample_result.current, total=sample_result.total
                 )
             )
+            on_new_word_result(
+                ImageResult(
+                    word=sample_result.word,
+                    image_data=(
+                        ImageData.new(image_bytes=(sample_result.image.tobytes()))
+                        if sample_result.image is not None
+                        else None
+                    ),
+                )
+            )
+
+        if job_input.input_text == "":
+            return True
+
+        style_image, character_data = load_character_data(
+            characters=job_input.input_text,
+        )
+        run_sample(
+            style_image=style_image,
+            character_data=character_data,
+            img_save_path="./outputs",
+            on_new_result=on_new_result,
+        )
 
         return True
 

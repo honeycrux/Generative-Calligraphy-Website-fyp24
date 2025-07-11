@@ -17,11 +17,8 @@ def image_repository_port() -> ImageRepositoryPort:
     image_repository_mock = ImageRepositoryMock()
 
     # Add a mock image to the repository
-    mock_image_id = UUID("12345678-1234-5678-1234-567812345678")
     mock_image = Image.new("RGBA", size=(0, 0), color=0)
-    image_repository_mock.save_image(
-        ImageData(image_id=mock_image_id, image_bytes=mock_image.tobytes())
-    )
+    image_repository_mock.save_image(ImageData.new(image_bytes=mock_image.tobytes()))
 
     return image_repository_mock
 

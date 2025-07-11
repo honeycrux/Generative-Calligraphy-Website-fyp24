@@ -27,3 +27,4 @@ dependencies:
   # Font-Transform-Website
   - fastapi[standard]
   - pytest
+  - pytest-asyncio

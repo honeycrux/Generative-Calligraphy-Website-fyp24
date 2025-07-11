@@ -1,24 +1,70 @@
 import argparse
 import os
+from typing import Callable, Optional
+import shutil
 
 import numpy as np
 import torch as th
 import torch.distributed as dist
+from PIL import Image
+from attrdict import AttrDict
+import yaml
 
-from utils import dist_util, logger
-from utils.script_util import (
+from fyp23_model.configs.font2img_config import (
+    add_font2img_arguments,
+    font2img_default_args,
+)
+from fyp23_model.configs.sample_config import (
+    create_sample_cfg,
+    sample_default_args,
+    add_sample_arguments,
+)
+from fyp23_model.font2img import create_character_images_from_font
+from fyp23_model.utils import dist_util, logger
+from fyp23_model.utils.script_util import (
     model_and_diffusion_defaults,
     args_to_dict,
     create_model_and_diffusion,
 )
-from PIL import Image
-from attrdict import AttrDict
-import yaml
-import shutil
 
 
-def img_pre_pros(img_path, image_size):
-    pil_image = Image.open(img_path).resize((image_size, image_size))
+class CharacterData:
+    content_text: str
+    content_images: list[Optional[Image.Image]]
+    __length: int
+
+    def __init__(self, content_text: str, content_images: list[Optional[Image.Image]]):
+        assert len(content_text) == len(
+            content_images
+        ), "The length of content_text and content_images must be the same."
+        self.content_text = content_text
+        self.content_images = content_images
+        self.__length = len(content_text)
+
+    def __len__(self):
+        return self.__length
+
+
+class SampleResult:
+    word: str
+    image: Optional[Image.Image]
+    current: int
+    total: int
+
+    def __init__(
+        self, word: str, image: Optional[Image.Image], current: int, total: int
+    ):
+        assert (
+            len(word) == 1
+        ), "SampleResult should only contain a single character or word."
+        self.word = word
+        self.image = image
+        self.current = current
+        self.total = total
+
+
+def img_pre_pros(img_path: Image.Image, image_size: tuple[int, int]) -> np.ndarray:
+    pil_image = img_path.resize((image_size, image_size))
     pil_image.load()
     pil_image = pil_image.convert("RGB")
     arr = np.array(pil_image)
@@ -29,82 +75,143 @@ def img_pre_pros(img_path, image_size):
 def main():
     parser = argparse.ArgumentParser()
 
-    # add arguments
-    parser.add_argument('--cfg_path', type=str, default='./cfg/test_cfg.yaml',
-                        help='config file path')
-    parser.add_argument('--session_id', type=str, default='01',
-                        help='session id for client') # (unused)
-    parser.add_argument('--model_path', type=str, default='./ckpt/ema_0.9999_446000.pt',)
-    parser.add_argument('--sty_img_path', type=str, default='./lan.png',)
-    parser.add_argument('--con_folder_path', type=str, default='./content_folder',)
-    parser.add_argument('--gen_text_stroke_path', type=str, default=None,) # (unused)
-    parser.add_argument('--total_txt_file', type=str, default='./wordlist.txt',)
-    parser.add_argument('--img_save_path', type=str, default='./result_web',)
-    parser.add_argument('--classifier_free', type=bool, default=False,) # (unused)
-    parser.add_argument('--cont_scale', type=float, default=3.0,) # (unused)
-    parser.add_argument('--sk_scale', type=float, default=3.0,) # (unused)
+    add_sample_arguments(parser)
+
+    add_font2img_arguments(parser)
 
     parser = parser.parse_args()
 
-    # get arguments
+    # read sample arguments
     cfg_path = parser.cfg_path
-    session_id = parser.session_id # (unused)
     model_path = parser.model_path
     sty_img_path = parser.sty_img_path
     con_folder_path = parser.con_folder_path
-    gen_text_stroke_path = parser.gen_text_stroke_path # (unused)
+    gen_text_stroke_path = parser.gen_text_stroke_path
     total_txt_file = parser.total_txt_file
     img_save_path = parser.img_save_path
-    classifier_free = parser.classifier_free # (unused)
-    cont_gudiance_scale = parser.cont_scale # (unused)
-    sk_gudiance_scale = parser.sk_scale # (unused)
+    ttf_path = parser.ttf_path
+    classifier_free = parser.classifier_free
+    cont_gudiance_scale = parser.cont_scale
+    sk_gudiance_scale = parser.sk_scale
 
-    # set up cfg
-    with open(cfg_path, 'r', encoding='utf-8') as f:
-        cfg = yaml.load(f, Loader=yaml.FullLoader)
-    cfg = AttrDict(create_cfg(cfg))
+    # read font2img arguments
+    ttf_path = parser.ttf_path
+    characters = parser.characters
+    text_path = parser.text_path
+    img_size = parser.img_size
+    char_size = parser.char_size
+
+    # load data
+    style_image, character_data = load_character_data(
+        sty_img_path=sty_img_path,
+        con_folder_path=con_folder_path,
+        text_path=text_path,
+        characters=characters,
+        ttf_path=ttf_path,
+        img_size=img_size,
+        char_size=char_size,
+    )
+
+    # run sampling
+    run_sample(
+        style_image=style_image,
+        character_data=character_data,
+        cfg_path=cfg_path,
+        model_path=model_path,
+        gen_text_stroke_path=gen_text_stroke_path,
+        total_txt_file=total_txt_file,
+        img_save_path=img_save_path,
+        classifier_free=classifier_free,
+        cont_gudiance_scale=cont_gudiance_scale,
+        sk_gudiance_scale=sk_gudiance_scale,
+    )
 
 
-    # set up distributed training
-    dist_util.setup_dist()
+def load_character_data(
+    sty_img_path: str = sample_default_args.sty_img_path,
+    con_folder_path: Optional[str] = sample_default_args.con_folder_path,
+    text_path: Optional[str] = font2img_default_args.text_path,
+    characters: Optional[str] = font2img_default_args.characters,
+    ttf_path: str = font2img_default_args.ttf_path,
+    img_size: int = font2img_default_args.img_size,
+    char_size: int = font2img_default_args.char_size,
+) -> tuple[Image.Image, CharacterData]:
+    style_image = Image.open(sty_img_path)
 
-    # save directory
-    if not os.path.exists(img_save_path):
-        os.mkdir(img_save_path)
+    assert (
+        characters is not None or text_path is None or con_folder_path is not None
+    ), "Either characters, text_path, or con_folder_path must be provided."
+
+    if characters is not None:
+        character_data = load_from_characters(
+            characters=characters,
+            font_path=ttf_path,
+            img_size=img_size,
+            char_size=char_size,
+        )
+    elif text_path is not None:
+        with open(text_path, "r", encoding="utf-8") as f:
+            text = f.read().strip()
+        character_data = load_from_characters(
+            characters=text, font_path=ttf_path, img_size=img_size, char_size=char_size
+        )
     else:
-        shutil.rmtree(img_save_path)
+        assert con_folder_path is not None
+        character_data = load_from_con_folder_path(con_folder_path)
+
+    return style_image, character_data
+
+
+def run_sample(
+    style_image: Image.Image,
+    character_data: CharacterData,
+    cfg_path: str = sample_default_args.cfg_path,
+    model_path: str = sample_default_args.model_path,
+    gen_text_stroke_path: Optional[str] = sample_default_args.gen_text_stroke_path,
+    total_txt_file: str = sample_default_args.total_txt_file,
+    img_save_path: Optional[str] = sample_default_args.img_save_path,
+    classifier_free: bool = sample_default_args.classifier_free,
+    cont_gudiance_scale: float = sample_default_args.cont_scale,
+    sk_gudiance_scale: float = sample_default_args.sk_scale,
+    on_new_result: Callable[[SampleResult], None] = lambda _: None,
+):
+    # set up cfg
+    with open(cfg_path, "r", encoding="utf-8") as f:
+        cfg = yaml.load(f, Loader=yaml.FullLoader)
+    cfg = AttrDict(create_sample_cfg(cfg))
+
+    # preprocess style image
+    style_image = img_pre_pros(style_image, cfg.image_size)
+
+    # preprocess content images
+    content_images = [
+        (
+            img_pre_pros(content_image, cfg.image_size)
+            if content_image is not None
+            else None
+        )
+        for content_image in character_data.content_images
+    ]
+
+    # characters
+    content_text = character_data.content_text
+
+    # set up save directory
+    if img_save_path is not None:
+        if os.path.exists(img_save_path):
+            # remove the directory if it exists
+            shutil.rmtree(img_save_path)
+
+        # create the directory
         os.mkdir(img_save_path)
-    os.chmod(img_save_path, 0o777)
-
-    # create UNet model and diffusion
-    logger.log("creating model and diffusion...")
-    model, diffusion = create_model_and_diffusion(
-        **args_to_dict(cfg, model_and_diffusion_defaults().keys())
-    )
-
-    # load model
-    model.load_state_dict(
-        dist_util.load_state_dict(model_path, map_location="cpu")
-    )
-    model.to(dist_util.dev())
-    if cfg.use_fp16:
-        model.convert_to_fp16()
-    model.eval()
-    logger.log("sampling...")
-    noise = None
-    # get words to be generated
-    gen_txt=[]
-    for file in os.listdir(con_folder_path):
-        file_name, file_extension = os.path.splitext(file)
-        if file_extension == ".png":
-            gen_txt.append(file_name[-1])
+        os.chmod(img_save_path, 0o777)
 
     # set up dictionary for trained words
     char2idx = {}
     char_not_in_list = []
-    with open(total_txt_file, 'r', encoding='utf-8') as f:
+    with open(total_txt_file, "r", encoding="utf-8") as f:
         chars = f.readlines()
-        for char in gen_txt:
+        for char in content_text:
             if char not in chars[0]:
                 chars[0] += char
                 char_not_in_list.append(char)
@@ -114,138 +221,88 @@ def main():
 
     # get index of words to be generated
     char_idx = []
-    for char in gen_txt:
+    for char in content_text:
         char_idx.append(char2idx[char])
-    
+
+    # set up distributed training
+    dist_util.setup_dist()
+
+    # create UNet model and diffusion
+    logger.log("creating model and diffusion...")
+    model, diffusion = create_model_and_diffusion(
+        **args_to_dict(cfg, model_and_diffusion_defaults().keys())
+    )
+
+    # load model
+    model.load_state_dict(dist_util.load_state_dict(model_path, map_location="cpu"))
+    model.to(dist_util.dev())
+    if cfg.use_fp16:
+        model.convert_to_fp16()
+    model.eval()
+    logger.log("sampling...")
+    noise = None
+
     all_images = []
     all_labels = []
-
-    stroke_dict = {}
-    if gen_text_stroke_path is not None:
-        with open(gen_text_stroke_path, 'r') as f:
-            gen_text_stroke = f.readlines()
-            for gen_strokes in gen_text_stroke:
-                stroke_dict[gen_strokes[0]] = gen_strokes[1:]
-        f.close()
 
     # for each batch
     # while len(all_images) * cfg.batch_size < cfg.num_samples:
     ch_idx = 0
-    for char in gen_txt:
+    total_images = len(all_images) * cfg.batch_size
+    for batch_num, (char, content_image) in enumerate(
+        zip(content_text, content_images)
+    ):
+        if content_image is None:
+            on_new_result(
+                SampleResult(
+                    word=char,
+                    image=None,
+                    current=batch_num,
+                    total=len(content_text),
+                )
+            )
+            logger.log(f"Content image for character '{char}' is None, skipping.")
+            continue
 
         model_kwargs = {}
 
-        # logger.log("1...")
         # process input content image
-        con_img = th.tensor(img_pre_pros(con_folder_path + "/" + char + ".png", cfg.image_size), requires_grad=False, device=dist_util.dev()).repeat(cfg.batch_size, 1, 1, 1)
+        con_img = th.tensor(
+            content_image,
+            requires_grad=False,
+            device=dist_util.dev(),
+        ).repeat(cfg.batch_size, 1, 1, 1)
         # con_feat = model.con_encoder(con_img)
         # model_kwargs["y"] = con_feat
 
-        # logger.log("2...")
         # process target style image
-        sty_img = th.tensor(img_pre_pros(sty_img_path, cfg.image_size), requires_grad=False, device=dist_util.dev()).repeat(cfg.batch_size, 1, 1, 1)
+        sty_img = th.tensor(
+            style_image,
+            requires_grad=False,
+            device=dist_util.dev(),
+        ).repeat(cfg.batch_size, 1, 1, 1)
         sty_feat = model.sty_encoder(sty_img)
         model_kwargs["sty"] = sty_feat
         model_kwargs["cont"] = con_img
 
-        # logger.log("3...")
         # process input characters
-        classes = th.tensor([i for i in char_idx[ch_idx:ch_idx + cfg.batch_size]], device=dist_util.dev())
+        classes = th.tensor(
+            [i for i in char_idx[ch_idx : ch_idx + cfg.batch_size]],
+            device=dist_util.dev(),
+        )
         ch_idx += cfg.batch_size
 
-        # logger.log("4...")
-        # read stroke information
-        '''if cfg.stroke_path is not None:
-            chars_stroke = th.empty([0, 32], dtype=th.float32)
+        model_kwargs["mask_y"] = th.zeros([cfg.batch_size], dtype=th.bool).to(
+            dist_util.dev()
+        )
 
-            # read all stroke
-            with open(cfg.stroke_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                # need to be in order????
-                if gen_text_stroke_path == None:
-                    for char in char_not_in_list:
-                        lines.append(char + " 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n")
-                else:
-                    for chn in char_not_in_list:
-                        lines.append(chn + stroke_dict[chn])
-                for line in lines:
-                    strokes = line.split(" ")[1:-1]
-                    char_stroke = []
-                    for stroke in strokes:
-                        char_stroke.append(int(stroke))
-                    while len(char_stroke) < 32:  # for korean
-                        char_stroke.append(0)
-                    assert len(char_stroke) == 32
-                    chars_stroke = th.cat((chars_stroke, th.tensor(char_stroke).reshape([1, 32])), dim=0)
-            f.close()
-
-            # take needed info
-            if classes >= 3000:
-                stk = "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"
-                stkth = th.tensor(stk)
-                model_kwargs["stroke"] = stkth.to(dist_util.dev())
-            else:
-            device = dist_util.dev()
-            chars_stroke = chars_stroke.to(device)
-            model_kwargs["stroke"] = chars_stroke[classes].to(device)
-            #model_kwargs["stroke"] = chars_stroke[classes].to(dist_util.dev())'''
-
-        '''if classifier_free:
-            if cfg.stroke_path is not None:
-                model_kwargs["mask_y"] = th.cat([th.zeros([cfg.batch_size], dtype=th.bool), th.ones([cfg.batch_size * 2], dtype=th.bool)]).to(dist_util.dev())
-                model_kwargs["y"] = model_kwargs["y"].repeat(3)
-                model_kwargs["mask_stroke"] = th.cat(
-                    [th.ones([cfg.batch_size], dtype=th.bool),th.zeros([cfg.batch_size], dtype=th.bool), th.ones([cfg.batch_size], dtype=th.bool)]).to(
-                    dist_util.dev())
-                model_kwargs["stroke"] = model_kwargs["stroke"].repeat(3, 1)
-                model_kwargs["sty"] = model_kwargs["sty"].repeat(3, 1)
-            else:
-                model_kwargs["mask_y"] = th.cat([th.zeros([cfg.batch_size], dtype=th.bool), th.ones([cfg.batch_size], dtype=th.bool)]).to(dist_util.dev())
-                model_kwargs["y"] = model_kwargs["y"].repeat(2)
-                model_kwargs["sty"] = model_kwargs["sty"].repeat(2, 1)
-        else:'''
-        model_kwargs["mask_y"] = th.zeros([cfg.batch_size], dtype=th.bool).to(dist_util.dev())
-        '''if cfg.stroke_path is not None:
-            model_kwargs["mask_stroke"] = th.zeros([cfg.batch_size], dtype=th.bool).to(dist_util.dev())'''
-
-        # logger.log("5...")
         def model_fn(x_t, ts, **model_kwargs):
-            '''if classifier_free:
-                repeat_time = model_kwargs["y"].shape[0] // x_t.shape[0]
-                x_t = x_t.repeat(repeat_time, 1, 1, 1)
-                ts = ts.repeat(repeat_time)
-
-                if cfg.stroke_path is not None:
-                    model_output = model(x_t, ts, **model_kwargs)
-                    model_output_y, model_output_stroke, model_output_uncond = model_output.chunk(3)
-                    model_output = model_output_uncond + \
-                                   cont_gudiance_scale * (model_output_y - model_output_uncond) + \
-                                   sk_gudiance_scale * (model_output_stroke - model_output_uncond)
-
-                else:
-
-                    model_output = model(x_t, ts, **model_kwargs)
-                    model_output_cond, model_output_uncond = model_output.chunk(2)
-                    model_output = model_output_uncond + cont_gudiance_scale * (model_output_cond - model_output_uncond)
-
-            else:'''
-                # logger.log("6...")
             model_output = model(x_t, ts, **model_kwargs)
             return model_output
 
-        # logger.log("7...")
         sample_fn = (
             diffusion.p_sample_loop if not cfg.use_ddim else diffusion.ddim_sample_loop
         )
-        # sample = sample_fn(
-        #     model_fn,
-        #     (cfg.batch_size, 3, cfg.image_size, cfg.image_size),
-        #     # con_img = con_img,
-        #     clip_denoised=cfg.clip_denoised,
-        #     model_kwargs=model_kwargs,
-        #     device=dist_util.dev(),
-        #     noise=noise,
-        # )[:, 3:, :, :]
         sample = sample_fn(
             model_fn,
             (cfg.batch_size, 3, cfg.image_size, cfg.image_size),
@@ -255,84 +312,117 @@ def main():
             device=dist_util.dev(),
             noise=noise,
         )
-        
+
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
         sample = sample.permute(0, 2, 3, 1)
         sample = sample.contiguous()
 
-        
         gathered_samples = [th.zeros_like(sample) for _ in range(dist.get_world_size())]
         dist.all_gather(gathered_samples, sample)
         all_images.extend([sample.cpu().numpy() for sample in gathered_samples])
 
-        gathered_labels = [
-            th.zeros_like(classes) for _ in range(dist.get_world_size())
-        ]
+        for sample in gathered_samples:
+            for idx in range(sample.shape[0]):
+                word = content_text[ch_idx - cfg.batch_size + idx]
+                img_sample = sample[idx].cpu().numpy()
+                img_sample = Image.fromarray(img_sample).convert("RGB")
+                on_new_result(
+                    SampleResult(
+                        word=word,
+                        image=img_sample,
+                        current=batch_num,
+                        total=len(content_text),
+                    )
+                )
+
+        gathered_labels = [th.zeros_like(classes) for _ in range(dist.get_world_size())]
         dist.all_gather(gathered_labels, classes)
         all_labels.extend([labels.cpu().numpy() for labels in gathered_labels])
-        logger.log(f"created {len(all_images) * cfg.batch_size} samples")
+        logger.log(f"created {total_images} samples")
 
     # save images
-    arr = np.concatenate(all_images, axis=0)
-    arr = arr[: cfg.num_samples]
-    label_arr = np.concatenate(all_labels, axis=0)
-    label_arr = label_arr[: cfg.num_samples]
-    #char2idx.keys()[char2idx.values().index(label)]
-    if dist.get_rank() == 0:
-        for idx, (img_sample, img_cls) in enumerate(zip(arr, label_arr)):
-            img = Image.fromarray(img_sample).convert("RGB")
-            img_name = gen_txt[idx] + ".png"
-            #img_name = "%05d.png" % (idx)  #change the name
-            img.save(os.path.join(img_save_path, img_name))
-            os.chmod(os.path.join(img_save_path, img_name), 0o777)
+    if dist.get_rank() == 0 and img_save_path is not None:
+        if len(all_images) > 0 and len(all_labels) > 0:
+            image_array = np.concatenate(all_images, axis=0)
+            image_array = image_array[: cfg.num_samples]
+            image_list = [
+                Image.fromarray(img_sample).convert("RGB") for img_sample in image_array
+            ]
+            label_array = np.concatenate(all_labels, axis=0)
+            label_array = label_array[: cfg.num_samples]
+            # char2idx.keys()[char2idx.values().index(label)]
 
-            # remove background
-            #image = Image.open(os.path.join(img_save_path, img_name))
+            for idx, (img, img_cls) in enumerate(zip(image_list, label_array)):
+                # img_name = "%05d.png" % (idx)
+                img_name = content_text[idx] + ".png"
 
-            '''if img.mode != 'RGBA':
-                img = img.convert('RGBA')
+                # img = remove_background(img)
 
-            threshold = 200  # Adjust this value according to your image
+                img.save(os.path.join(img_save_path, img_name))
+                os.chmod(os.path.join(img_save_path, img_name), 0o777)
+        else:
+            logger.log("No images or labels to save.")
 
-            width, height = img.size
-            pixels = img.load()
+    dist.barrier()
 
-            for x in range(width):
-                for y in range(height):
-                    r, g, b, a = pixels[x, y]
-
-                    if r > threshold or g > threshold or b > threshold:
-                        pixels[x, y] = (r, g, b, 0)  # Set the pixel to transparent
-                        a = 0
-                        
-                    #if a != 0:
-                        #pixels[x, y] = (0, 0, 0, a)
-
-            #output_path = 'output.png'
-            img.save(os.path.join(img_save_path, img_name))
-            os.chmod(os.path.join(img_save_path, img_name), 0o777)'''
-
-            dist.barrier()
-        logger.log("sampling complete")
+    logger.log("sampling complete")
 
 
-def create_cfg(cfg):
-    defaults = dict(
-        clip_denoised=True,
-        num_samples=100,
-        batch_size=16,
-        use_ddim=False,
-        model_path="",
-        cont_scale=1.0,
-        sk_scale=1.0,
-        sty_img_path="",
-        #gen_text_stroke_path="", # add
-        #stroke_path=None,
-        attention_resolutions='40, 20, 10',
+def load_from_con_folder_path(
+    con_folder_path: str,
+) -> CharacterData:
+    # get words to be generated
+    content_text = ""
+    content_images = []
+    for file in os.listdir(con_folder_path):
+        file_name, file_extension = os.path.splitext(file)
+        if file_extension == ".png":
+            content_text += file_name[-1]
+            content_images.append(Image.open(os.path.join(con_folder_path, file)))
+
+    return CharacterData(
+        content_text=content_text,
+        content_images=content_images,
     )
-    defaults.update(model_and_diffusion_defaults())
-    defaults.update(cfg)
-    return defaults
+
+
+def load_from_characters(
+    characters: str, font_path: str, img_size: int, char_size: int
+) -> CharacterData:
+    results, _, _ = create_character_images_from_font(
+        characters=characters,
+        font_path=font_path,
+        img_size=img_size,
+        char_size=char_size,
+    )
+    content_images = [result.image for result in results]
+
+    return CharacterData(
+        content_text=characters,
+        content_images=content_images,
+    )
+
+
+def remove_background(img: Image.Image):
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+
+    threshold = 200  # Adjust this value according to your image
+
+    width, height = img.size
+    pixels = img.load()
+
+    for x in range(width):
+        for y in range(height):
+            r, g, b, a = pixels[x, y]
+
+            if r > threshold or g > threshold or b > threshold:
+                pixels[x, y] = (r, g, b, 0)  # Set the pixel to transparent
+
+                # if a != 0:
+                # pixels[x, y] = (0, 0, 0, a)
+
+    return img
 
 
 if __name__ == "__main__":

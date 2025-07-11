@@ -55,7 +55,7 @@ class RunningJob(JobInfo):
             job_id=waiting_job.job_id,
             time_start_to_queue=waiting_job.time_start_to_queue,
             time_start_to_run=datetime.now(),
-            running_state=RunningState.GENERATING,
+            running_state=RunningState.not_started(),
         )
 
     def of_state(self, running_state: RunningState) -> "RunningJob":

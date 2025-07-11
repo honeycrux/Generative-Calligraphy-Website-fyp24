@@ -25,6 +25,7 @@ from domain.value.job_info import (
 from domain.value.job_input import JobInput
 from domain.value.job_status import JobStatus
 from domain.value.running_state import RunningState
+from domain.value.image_result import ImageResult
 
 
 class JobManagementService(JobManagementPort):
@@ -84,14 +85,16 @@ class JobManagementService(JobManagementPort):
                 job_info=job.job_info.of_state(state),
             )
 
-        def on_new_word_result(job: Job, word: str, image_data: Optional[ImageData]):
+        def on_new_word_result(job: Job, image_result: ImageResult):
+            word = image_result.word
+            image_data = image_result.image_data
             image_id = image_data.image_id if image_data else None
-            success = image_data is not None
 
             # Add the word result to the job's generation result
-            job.add_word_result(word=word, success=success, image_id=image_id)
+            job.add_word_result(word=word, image_id=image_id)
 
-            if success and image_data is not None:
+            if image_result.success:
+                assert image_data is not None
                 # If the image data is available, save it to the file system
                 self.__image_repository_port.save_image(image_data=image_data)
 
@@ -128,8 +131,8 @@ class JobManagementService(JobManagementPort):
                 job_input=job.job_input,
                 job_info=job.job_info,
                 on_new_state=lambda state: on_new_state(job, state),
-                on_new_word_result=lambda word, image_data: on_new_word_result(
-                    job=job, word=word, image_data=image_data
+                on_new_word_result=lambda image_result: on_new_word_result(
+                    job=job, image_result=image_result
                 ),
             )
 

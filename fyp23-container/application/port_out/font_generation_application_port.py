@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 from asyncio import Task
 from typing import Callable, Optional, Union
 
-from domain.value.image_data import ImageData
+
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
+from domain.value.image_result import ImageResult
 
 
 class FontGenerationApplicationPort(ABC):
@@ -19,7 +20,7 @@ class FontGenerationApplicationPort(ABC):
         job_input: JobInput,
         job_info: RunningJob,
         on_new_state: Callable[[RunningState], None],
-        on_new_word_result: Callable[[str, Optional[ImageData]], None],
+        on_new_word_result: Callable[[ImageResult], None],
     ) -> Task[Union[bool, str]]:
         """
         Generate text based on the job input.

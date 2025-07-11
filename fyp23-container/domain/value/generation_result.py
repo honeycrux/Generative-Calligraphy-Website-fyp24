@@ -10,15 +10,11 @@ class WordResult(BaseModel):
     success: bool
     image_id: Optional[UUID]
 
-    def __init__(self, word: str, success: bool, image_id: Optional[UUID]):
+    def __init__(self, word: str, image_id: Optional[UUID]):
         if len(word) != 1:
             raise ValueError("Word must be a single character, got: {}".format(word))
 
-        if success and image_id is None:
-            raise ValueError("Image ID must be provided if success is True")
-
-        if not success and image_id is not None:
-            raise ValueError("Image ID must be None if success is False")
+        success = image_id is not None
 
         super().__init__(word=word, success=success, image_id=image_id)
 

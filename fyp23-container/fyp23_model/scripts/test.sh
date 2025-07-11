@@ -15,9 +15,9 @@ mkdir -p ./scripts/outputs/content_folder
 echo "測試" > ./scripts/outputs/char-input.txt
 chmod 777 ./scripts/outputs/char-input.txt
 python font2img.py \
-    --ttf_path ./ttf_folder \
+    --ttf_path ./ttf_folder/PMingLiU.ttf \
     --save_path ./scripts/outputs/content_folder \
-    --chara ./scripts/outputs/char-input.txt
+    --text_path ./scripts/outputs/char-input.txt
 echo "----------------------------------"
 echo "Expected output: 0 characters are missing in this font"
 echo "Expected: Images are saved in ./scripts/outputs/content_folder"
@@ -46,9 +46,9 @@ mkdir -p ./scripts/outputs/non_chinese
 echo "Abc 123" > ./scripts/outputs/non-chinese.txt
 chmod 777 ./scripts/outputs/non-chinese.txt
 python font2img.py \
-    --ttf_path ./ttf_folder \
+    --ttf_path ./ttf_folder/PMingLiU.ttf \
     --save_path ./scripts/outputs/non_chinese \
-    --chara ./scripts/outputs/non-chinese.txt
+    --text_path ./scripts/outputs/non-chinese.txt
 echo "----------------------------------"
 echo "Expected output: n characters are missing in this font"
 echo "(n = number of space characters in the input)"
