@@ -1,4 +1,4 @@
-# Generative-Calligraphy-Website
+# Generative Calligraphy Website
 
 ## Installation
 
