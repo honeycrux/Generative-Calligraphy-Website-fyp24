@@ -1,21 +1,25 @@
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from application.port_out.image_repository_port import ImageRepositoryPort
-from domain.value.image_data import ImageData
 
 
 class ImageRepositoryMock(ImageRepositoryPort):
-    __files: dict[UUID, ImageData]
+    __files: dict[UUID, bytes]
 
     def __init__(self):
         self.__files = {}
 
-    def get_image(self, image_id: UUID) -> Optional[ImageData]:
+    def get_image(self, image_id: UUID) -> Optional[bytes]:
         return self.__files.get(image_id, None)
 
-    def save_image(self, image_data: ImageData) -> None:
-        self.__files[image_data.image_id] = image_data
+    def save_image(self, image: bytes) -> UUID:
+        image_id = uuid4()
+        self.__files[image_id] = image
+        return image_id
+
+    def save_image_to_id(self, image: bytes, image_id: UUID) -> None:
+        self.__files[image_id] = image
 
     def delete_image(self, image_id: UUID) -> None:
         if image_id in self.__files:

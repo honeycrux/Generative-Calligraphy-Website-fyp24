@@ -1,8 +1,6 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Optional
 from uuid import UUID
-
-from domain.value.image_data import ImageData
 
 
 class ImageRepositoryPort(ABC):
@@ -11,24 +9,38 @@ class ImageRepositoryPort(ABC):
     This port defines the interface for accessing and managing images.
     """
 
-    def get_image(self, image_id: UUID) -> Optional[ImageData]:
+    @abstractmethod
+    def get_image(self, image_id: UUID) -> Optional[bytes]:
         """
         Retrieve an image by its ID.
 
         :param image_id: The ID of the image to retrieve.
-        :return: An ImageData object if the image exists, otherwise None.
+        :return: The image data if found, otherwise None.
         """
         pass
 
-    def save_image(self, image_data: ImageData) -> None:
+    @abstractmethod
+    def save_image(self, image: bytes) -> UUID:
         """
         Save an image.
-        Saving to an existing ID will overwrite it.
 
-        :param image_data: The data of the image to save.
+        :param image: The data of the image to save.
+        :return: The ID of the saved image.
         """
         pass
 
+    @abstractmethod
+    def save_image_to_id(self, image: bytes, image_id: UUID) -> None:
+        """
+        Save an image to a specific ID.
+        This will overwrite any existing image with the same ID.
+
+        :param image: The data of the image to save.
+        :param image_id: The ID to save the image under.
+        """
+        pass
+
+    @abstractmethod
     def delete_image(self, image_id: UUID) -> None:
         """
         Delete an image by its ID.

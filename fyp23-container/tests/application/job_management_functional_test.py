@@ -4,12 +4,12 @@ import pytest
 
 from application.job_management_service import JobManagementService
 from application.port_in.job_management_port import JobManagementPort
-from application.port_in.get_image_port import GetImagePort
-from application.port_out.font_generation_application_port import (
-    FontGenerationApplicationPort,
+from application.port_in.image_access_port import ImageAccessPort
+from application.port_out.text_generator_port import (
+    TextGeneratorPort,
 )
 from application.port_out.image_repository_port import ImageRepositoryPort
-from application.get_image_service import GetImageService
+from application.image_access_service import ImageAccessService
 from domain.entity.job import Job
 from domain.value.font_gen_service_config import FontGenServiceConfig
 from domain.value.job_input import JobInput
@@ -38,8 +38,8 @@ def image_repository_port() -> ImageRepositoryPort:
 
 
 @pytest.fixture
-def get_image_port(image_repository_port) -> GetImagePort:
-    return GetImageService(image_repository_port=image_repository_port)
+def image_access_port(image_repository_port) -> ImageAccessPort:
+    return ImageAccessService(image_repository_port=image_repository_port)
 
 
 @pytest.fixture
@@ -48,12 +48,12 @@ def job_management_service(image_repository_port) -> JobManagementService:
         operate_queue_interval=OPERATE_QUEUE_INTERVAL,
         max_retain_time=MAX_RETAIN_TIME,
     )
-    font_application: FontGenerationApplicationPort = FontGenerationApplicationMock(
+    font_application: TextGeneratorPort = FontGenerationApplicationMock(
         run_seconds=TASK_PROCESSING_TIME,
         simulate_success=True,
     )
     return JobManagementService(
-        font_generation_application_port=font_application,
+        text_generator_port=font_application,
         font_gen_service_config=config,
         image_repository_port=image_repository_port,
     )
@@ -65,13 +65,13 @@ def job_management_service_that_fails(image_repository_port) -> JobManagementSer
         operate_queue_interval=OPERATE_QUEUE_INTERVAL,
         max_retain_time=MAX_RETAIN_TIME,
     )
-    font_application: FontGenerationApplicationPort = FontGenerationApplicationMock(
+    font_application: TextGeneratorPort = FontGenerationApplicationMock(
         run_seconds=TASK_PROCESSING_TIME,
         simulate_success=False,
     )
     image_repository = ImageRepositoryMock()
     return JobManagementService(
-        font_generation_application_port=font_application,
+        text_generator_port=font_application,
         font_gen_service_config=config,
         image_repository_port=image_repository_port,
     )
@@ -162,7 +162,7 @@ def test_added_task_can_run_with_resources_available(job_management_port):
         job.job_status == JobStatus.RUNNING
     ), "Job status should be RUNNING after starting"
     assert (
-        job.generation_result is not None
+        job.job_result is not None
     ), "Job resources should be available when the task is running"
 
 
@@ -172,21 +172,21 @@ def test_started_task_can_complete_with_results_for_all_input_words(
     job_id, job = add_and_complete_task(job_management_port)
 
     # Check if images are saved
-    assert len(job.generation_result.word_results) == len(
+    assert len(job.job_result.generated_word_locations) == len(
         job.job_input.input_text
     ), "Number of word results should match the input text length"
 
 
-def test_images_can_be_retrieved(job_management_port, get_image_port):
+def test_images_can_be_retrieved(job_management_port, image_access_port):
     job_id, job = add_and_complete_task(job_management_port)
 
     # Check if successful images can be retrieved
-    for word_result in job.generation_result.word_results:
-        if word_result.image_id is not None:
-            image_data = get_image_port.get_image(word_result.image_id)
+    for word_location in job.job_result.generated_word_locations:
+        if word_location.image_id is not None:
+            image = image_access_port.get_image(word_location.image_id)
             assert (
-                image_data is not None
-            ), f"Image data should not be None for word '{word_result.word}'"
+                image is not None
+            ), f"Image data should not be None for word '{word_location.word}'"
 
 
 def test_started_task_can_fail(job_management_port_that_fails):
@@ -316,10 +316,10 @@ def test_process_job_in_input_order(job_management_port):
 
 
 def test_can_retrieve_task_and_resources_at_or_before_retain_time(
-    job_management_port, get_image_port
+    job_management_port, image_access_port
 ):
     job_id, job = add_and_complete_task(job_management_port)
-    resources = job.generation_result.word_results
+    resources = job.job_result.generated_word_locations
 
     # Wait for some time less than MAX_RETAIN_TIME
     time.sleep(MAX_RETAIN_TIME - TINY_BUFFER)
@@ -329,19 +329,19 @@ def test_can_retrieve_task_and_resources_at_or_before_retain_time(
     assert job is not None, "Job should still be retrievable within retain time"
 
     # Try to retrieve the resources
-    for word_result in resources:
-        if word_result.image_id is not None:
-            image_data = get_image_port.get_image(word_result.image_id)
+    for word_location in resources:
+        if word_location.image_id is not None:
+            image = image_access_port.get_image(word_location.image_id)
             assert (
-                image_data is not None
-            ), f"Image data should be retrievable for word '{word_result.word}'"
+                image is not None
+            ), f"Image data should be retrievable for word '{word_location.word}'"
 
 
 def test_no_guarantee_of_retrieving_task_and_resources_between_once_and_twice_the_retain_time(
-    job_management_port, get_image_port
+    job_management_port, image_access_port
 ):
     job_id, job = add_and_complete_task(job_management_port)
-    resources = job.generation_result.word_results
+    resources = job.job_result.generated_word_locations
 
     # Wait between once and twice the MAX_RETAIN_TIME
     time.sleep(MAX_RETAIN_TIME + TINY_BUFFER)
@@ -353,19 +353,19 @@ def test_no_guarantee_of_retrieving_task_and_resources_between_once_and_twice_th
     ), "Job may or may not be retrievable after once the retain time has passed"
 
     # Try to retrieve the resources
-    for word_result in resources:
-        if word_result.image_id is not None:
-            image_data = get_image_port.get_image(word_result.image_id)
+    for word_location in resources:
+        if word_location.image_id is not None:
+            image = image_access_port.get_image(word_location.image_id)
             assert (
-                image_data is not None or image_data is None
-            ), f"Image data may or may not be retrievable for word '{word_result.word}'"
+                image is not None or image is None
+            ), f"Image data may or may not be retrievable for word '{word_location.word}'"
 
 
 def test_cannot_retrieve_task_and_resources_after_twice_the_retain_time(
-    job_management_port, get_image_port
+    job_management_port, image_access_port
 ):
     job_id, job = add_and_complete_task(job_management_port)
-    resources = job.generation_result.word_results
+    resources = job.job_result.generated_word_locations
 
     time.sleep(
         TASK_PROCESSING_TIME + OPERATE_QUEUE_INTERVAL + TINY_BUFFER
@@ -379,9 +379,9 @@ def test_cannot_retrieve_task_and_resources_after_twice_the_retain_time(
     assert job is None, "Job should not be retrievable after retain time"
 
     # Try to retrieve the resources
-    for word_result in resources:
-        if word_result.image_id is not None:
-            image_data = get_image_port.get_image(word_result.image_id)
+    for word_location in resources:
+        if word_location.image_id is not None:
+            image = image_access_port.get_image(word_location.image_id)
             assert (
-                image_data is None
-            ), f"Image data should not be retrievable for word '{word_result.word}'"
+                image is None
+            ), f"Image data should not be retrievable for word '{word_location.word}'"

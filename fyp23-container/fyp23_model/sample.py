@@ -45,7 +45,7 @@ class CharacterData:
         return self.__length
 
 
-class SampleResult:
+class SampledImage:
     word: str
     image: Optional[Image.Image]
     current: int
@@ -173,7 +173,7 @@ def run_sample(
     classifier_free: bool = sample_default_args.classifier_free,
     cont_gudiance_scale: float = sample_default_args.cont_scale,
     sk_gudiance_scale: float = sample_default_args.sk_scale,
-    on_new_result: Callable[[SampleResult], None] = lambda _: None,
+    on_new_result: Callable[[SampledImage], None] = lambda _: None,
 ):
     # set up cfg
     with open(cfg_path, "r", encoding="utf-8") as f:
@@ -254,7 +254,7 @@ def run_sample(
     ):
         if content_image is None:
             on_new_result(
-                SampleResult(
+                SampledImage(
                     word=char,
                     image=None,
                     current=batch_num,
@@ -327,7 +327,7 @@ def run_sample(
                 img_sample = sample[idx].cpu().numpy()
                 img_sample = Image.fromarray(img_sample).convert("RGB")
                 on_new_result(
-                    SampleResult(
+                    SampledImage(
                         word=word,
                         image=img_sample,
                         current=batch_num,

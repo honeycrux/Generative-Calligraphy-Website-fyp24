@@ -6,12 +6,13 @@ from typing import Callable, Optional, Union
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
-from domain.value.image_result import ImageResult
+from domain.value.generated_word import GeneratedWord
 
 
-class FontGenerationApplicationPort(ABC):
+class TextGeneratorPort(ABC):
     """
-    Port for font generation application.
+    Port for text generation.
+    This port defines the interface for the application that generates text.
     """
 
     @abstractmethod
@@ -20,7 +21,7 @@ class FontGenerationApplicationPort(ABC):
         job_input: JobInput,
         job_info: RunningJob,
         on_new_state: Callable[[RunningState], None],
-        on_new_word_result: Callable[[ImageResult], None],
+        on_new_word_result: Callable[[GeneratedWord], None],
     ) -> Task[Union[bool, str]]:
         """
         Generate text based on the job input.

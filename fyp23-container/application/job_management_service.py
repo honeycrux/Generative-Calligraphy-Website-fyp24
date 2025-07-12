@@ -6,15 +6,14 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 from application.port_in.job_management_port import JobManagementPort
-from application.port_out.font_generation_application_port import (
-    FontGenerationApplicationPort,
+from application.port_out.text_generator_port import (
+    TextGeneratorPort,
 )
 from application.port_out.image_repository_port import ImageRepositoryPort
 from domain.entity.job import Job
 from domain.entity.job_queue import JobQueue
 from domain.entity.job_table import JobTable
 from domain.value.font_gen_service_config import FontGenServiceConfig
-from domain.value.image_data import ImageData
 from domain.value.job_info import (
     CancelledJob,
     CompletedJob,
@@ -25,26 +24,27 @@ from domain.value.job_info import (
 from domain.value.job_input import JobInput
 from domain.value.job_status import JobStatus
 from domain.value.running_state import RunningState
-from domain.value.image_result import ImageResult
+from domain.value.generated_word import GeneratedWord
+from domain.value.generated_word_location import GeneratedWordLocation
 
 
 class JobManagementService(JobManagementPort):
     __config: FontGenServiceConfig
     __job_table: JobTable
     __job_queue: JobQueue
-    __font_generation_application_port: FontGenerationApplicationPort
+    __text_generator_port: TextGeneratorPort
     __image_repository_port: ImageRepositoryPort
     __operate_queue_thread: threading.Thread
     __cleanup_job_table_thread: threading.Thread
 
     def __init__(
         self,
-        font_generation_application_port: FontGenerationApplicationPort,
+        text_generator_port: TextGeneratorPort,
         font_gen_service_config: FontGenServiceConfig,
         image_repository_port: ImageRepositoryPort,
     ):
         self.__config = font_gen_service_config
-        self.__font_generation_application_port = font_generation_application_port
+        self.__text_generator_port = text_generator_port
         self.__image_repository_port = image_repository_port
 
         max_retain_time = timedelta(seconds=font_gen_service_config.max_retain_time)
@@ -85,18 +85,19 @@ class JobManagementService(JobManagementPort):
                 job_info=job.job_info.of_state(state),
             )
 
-        def on_new_word_result(job: Job, image_result: ImageResult):
-            word = image_result.word
-            image_data = image_result.image_data
-            image_id = image_data.image_id if image_data else None
+        def on_new_word_result(job: Job, generated_word: GeneratedWord):
+            word = generated_word.word
+            image = generated_word.image
+            image_id: Optional[UUID] = None
+
+            if generated_word.success:
+                assert image is not None
+                # If the image data is available, save it to the file system
+                image_id = self.__image_repository_port.save_image(image=image)
 
             # Add the word result to the job's generation result
-            job.add_word_result(word=word, image_id=image_id)
-
-            if image_result.success:
-                assert image_data is not None
-                # If the image data is available, save it to the file system
-                self.__image_repository_port.save_image(image_data=image_data)
+            generated_word_location = GeneratedWordLocation(word, image_id)
+            job.add_generated_word_location(generated_word_location)
 
         async def operate_queue() -> None:
             if self.__job_queue.size() < 1:
@@ -127,12 +128,12 @@ class JobManagementService(JobManagementPort):
             ), "Job info should be RunningJob at this point"
 
             # Start the font generation task
-            task_coroutine = self.__font_generation_application_port.generate_text(
+            task_coroutine = self.__text_generator_port.generate_text(
                 job_input=job.job_input,
                 job_info=job.job_info,
                 on_new_state=lambda state: on_new_state(job, state),
-                on_new_word_result=lambda image_result: on_new_word_result(
-                    job=job, image_result=image_result
+                on_new_word_result=lambda generated_word: on_new_word_result(
+                    job=job, generated_word=generated_word
                 ),
             )
 

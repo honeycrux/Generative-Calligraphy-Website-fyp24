@@ -1,6 +1,6 @@
-class JobQueueAccessException(Exception):
+class RetrievalFromEmptyJobQueue(Exception):
     """
-    Exception raised when there is an issue storing or retrieving a job in the job table.
+    Exception raised when there is an issue retrieving a job from an empty job queue.
     """
 
     message: str

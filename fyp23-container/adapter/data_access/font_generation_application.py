@@ -2,36 +2,35 @@ from asyncio import Task
 import asyncio
 from typing import Callable, Union
 
-from domain.value.image_data import ImageData
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
-from domain.value.image_result import ImageResult
-from application.port_out.font_generation_application_port import (
-    FontGenerationApplicationPort,
+from domain.value.generated_word import GeneratedWord
+from application.port_out.text_generator_port import (
+    TextGeneratorPort,
 )
-from fyp23_model.sample import SampleResult, load_character_data, run_sample
+from fyp23_model.sample import SampledImage, load_character_data, run_sample
 
 
-class FontGenerationApplication(FontGenerationApplicationPort):
+class FontGenerationApplication(TextGeneratorPort):
     async def __generation(
         self,
         job_input: JobInput,
         job_info: RunningJob,
         on_new_state: Callable[[RunningState], None],
-        on_new_word_result: Callable[[ImageResult], None],
+        on_new_word_result: Callable[[GeneratedWord], None],
     ) -> Union[bool, str]:
-        def on_new_result(sample_result: SampleResult):
+        def on_new_result(sample_result: SampledImage):
             on_new_state(
                 RunningState.generating(
                     current=sample_result.current, total=sample_result.total
                 )
             )
             on_new_word_result(
-                ImageResult(
+                GeneratedWord(
                     word=sample_result.word,
-                    image_data=(
-                        ImageData.new(image_bytes=(sample_result.image.tobytes()))
+                    image=(
+                        sample_result.image.tobytes()
                         if sample_result.image is not None
                         else None
                     ),
@@ -58,7 +57,7 @@ class FontGenerationApplication(FontGenerationApplicationPort):
         job_input: JobInput,
         job_info: RunningJob,
         on_new_state: Callable[[RunningState], None],
-        on_new_word_result: Callable[[ImageResult], None],
+        on_new_word_result: Callable[[GeneratedWord], None],
     ) -> Task[Union[bool, str]]:
         return asyncio.create_task(
             self.__generation(

@@ -3,17 +3,16 @@ import asyncio
 from typing import Callable, Union
 from PIL import Image
 
-from application.port_out.font_generation_application_port import (
-    FontGenerationApplicationPort,
+from application.port_out.text_generator_port import (
+    TextGeneratorPort,
 )
-from domain.value.image_data import ImageData
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
-from domain.value.image_result import ImageResult
+from domain.value.generated_word import GeneratedWord
 
 
-class FontGenerationApplicationMock(FontGenerationApplicationPort):
+class FontGenerationApplicationMock(TextGeneratorPort):
     run_seconds: float  # Simulated wait time
     simulate_success: bool  # Simulated success flag
 
@@ -27,7 +26,7 @@ class FontGenerationApplicationMock(FontGenerationApplicationPort):
         job_input: JobInput,
         job_info: RunningJob,
         on_new_state: Callable[[RunningState], None],
-        on_new_word_result: Callable[[ImageResult], None],
+        on_new_word_result: Callable[[GeneratedWord], None],
     ) -> Union[bool, str]:
         # Simulate async operation
         await asyncio.sleep(self.run_seconds)
@@ -41,9 +40,9 @@ class FontGenerationApplicationMock(FontGenerationApplicationPort):
             mock_image = Image.new("RGBA", size=(0, 0), color=0)
 
             on_new_word_result(
-                ImageResult(
+                GeneratedWord(
                     word=char,
-                    image_data=ImageData.new(image_bytes=mock_image.tobytes()),
+                    image=mock_image.tobytes(),
                 )
             )
 
@@ -54,7 +53,7 @@ class FontGenerationApplicationMock(FontGenerationApplicationPort):
         job_input: JobInput,
         job_info: RunningJob,
         on_new_state: Callable[[RunningState], None],
-        on_new_word_result: Callable[[ImageResult], None],
+        on_new_word_result: Callable[[GeneratedWord], None],
     ) -> Task[Union[bool, str]]:
         return asyncio.create_task(
             self.__generation(

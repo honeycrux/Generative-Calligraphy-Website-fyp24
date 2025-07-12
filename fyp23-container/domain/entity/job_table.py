@@ -4,8 +4,8 @@ from typing import Callable, Optional, Union
 from uuid import UUID
 
 from domain.entity.job import Job
-from domain.exception.job_table_access_exception import JobTableAccessException
-from domain.value.generation_result import GenerationResult
+from domain.exception.job_table_id_conflict import JobTableIDConflict
+from domain.value.job_result import JobResult
 from domain.value.job_info import (
     CancelledJob,
     RunningJob,
@@ -17,7 +17,7 @@ from domain.value.job_status import JobStatus
 
 class JobTable:
     __jobs: dict[UUID, Job]
-    __coroutines: dict[UUID, Optional[Task[Union[GenerationResult, str]]]]
+    __coroutines: dict[UUID, Optional[Task[Union[JobResult, str]]]]
 
     # Maximum time to retain completed jobs in the table
     __max_retain_time: timedelta
@@ -29,7 +29,9 @@ class JobTable:
 
     def add_job(self, job: Job) -> None:
         if job.job_id in self.__jobs:
-            raise JobTableAccessException(f"Job with ID {job.job_id} already exists.")
+            raise JobTableIDConflict(
+                f"Add job of ID {job.job_id} while another job with the same ID already exists."
+            )
         self.__jobs[job.job_id] = job
 
     def get_job(self, job_id: UUID) -> Optional[Job]:
@@ -63,7 +65,9 @@ class JobTable:
             # Job does not exist, cannot add coroutine
             return
         if job_id in self.__coroutines:
-            raise JobTableAccessException(f"Coroutine for job {job_id} already exists.")
+            raise JobTableIDConflict(
+                f"Add coroutine for the job {job_id} that already has a coroutine."
+            )
         self.__coroutines[job_id] = coroutine
 
     def cleanup(self, on_delete_resource: Callable[[UUID], None]) -> None:
@@ -81,9 +85,9 @@ class JobTable:
 
             # Clean up resources associated with the job
             if job is not None:
-                for word_result in job.generation_result.word_results:
-                    if word_result.image_id is not None:
-                        on_delete_resource(word_result.image_id)
+                for word_location in job.job_result.generated_word_locations:
+                    if word_location.image_id is not None:
+                        on_delete_resource(word_location.image_id)
 
     def __get_coroutine(self, job_id: UUID) -> Optional[Task]:
         if job_id not in self.__coroutines:

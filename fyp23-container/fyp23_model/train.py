@@ -5,7 +5,7 @@ from attrdict import AttrDict
 import yaml
 
 from utils import dist_util, logger
-from utils.image_datasets import load_data
+from utils.word_imagesets import load_data
 from utils.resample import create_named_schedule_sampler
 from utils.script_util import (
     model_and_diffusion_defaults,

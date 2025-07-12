@@ -1,7 +1,7 @@
 from queue import Queue
 from uuid import UUID
 
-from domain.exception.job_queue_access_exception import JobQueueAccessException
+from domain.exception.retrieval_from_empty_job_queue import RetrievalFromEmptyJobQueue
 
 
 class JobQueue:
@@ -18,7 +18,7 @@ class JobQueue:
 
     def dequeue_job(self) -> UUID:
         if self.__job_queue.empty():
-            raise JobQueueAccessException("No jobs in the queue.")
+            raise RetrievalFromEmptyJobQueue("Dequeue a job from an empty queue.")
         return self.__job_queue.get()
 
     def is_empty(self) -> bool:

@@ -7,13 +7,18 @@ from adapter.data_access.font_generation_application import FontGenerationApplic
 from domain.value.job_input import JobInput
 from domain.value.job_info import RunningJob
 from domain.value.running_state import RunningState
-from domain.value.image_data import ImageData
-from domain.value.image_result import ImageResult
+from domain.value.generated_word import GeneratedWord
+
+
+### Fixtures ###
 
 
 @pytest.fixture
 def font_generation_application():
     return FontGenerationApplication()
+
+
+### Helper Function ###
 
 
 async def generate_text(
@@ -27,13 +32,13 @@ async def generate_text(
         running_state=RunningState.not_started(),
     )
 
-    result_list: list[ImageResult] = []
+    result_list: list[GeneratedWord] = []
 
     def on_new_state(state: RunningState):
         pass
 
-    def on_new_word_result(image_result: ImageResult):
-        result_list.append(image_result)
+    def on_new_word_result(generated_word: GeneratedWord):
+        result_list.append(generated_word)
 
     task = font_generation_application.generate_text(
         job_input=job_input,
@@ -47,6 +52,9 @@ async def generate_text(
     return result_list
 
 
+### Tests ###
+
+
 @pytest.mark.asyncio
 async def test_generate_empty_text(font_generation_application):
     result = await generate_text(font_generation_application, "")
@@ -56,7 +64,7 @@ async def test_generate_empty_text(font_generation_application):
 @pytest.mark.asyncio
 async def test_generate_missing_word(font_generation_application):
     result = await generate_text(font_generation_application, " ")
-    assert result == [ImageResult(word=" ", image_data=None)]
+    assert result == [GeneratedWord(word=" ", image=None)]
 
 
 # @pytest.mark.asyncio

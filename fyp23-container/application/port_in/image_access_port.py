@@ -1,17 +1,16 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from uuid import UUID
 from typing import Optional
 
-from domain.value.image_data import ImageData
 
-
-class GetImagePort(ABC):
+class ImageAccessPort(ABC):
     """
     Port for retrieving images.
     This port defines the interface for getting images by their ID.
     """
 
-    def get_image(self, image_id: UUID) -> Optional[ImageData]:
+    @abstractmethod
+    def get_image(self, image_id: UUID) -> Optional[bytes]:
         """
         Retrieve an image by its ID.
 

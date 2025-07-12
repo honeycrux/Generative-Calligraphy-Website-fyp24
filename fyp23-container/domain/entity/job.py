@@ -2,7 +2,8 @@ import copy
 from typing import Optional
 from uuid import UUID
 
-from domain.value.generation_result import GenerationResult, WordResult
+from domain.value.job_result import JobResult
+from domain.value.generated_word_location import GeneratedWordLocation
 from domain.value.job_info import (
     CancelledJob,
     CompletedJob,
@@ -20,7 +21,7 @@ class Job:
     __job_input: JobInput
     __job_status: JobStatus
     __job_info: JobInfo
-    __generation_result: GenerationResult
+    __job_result: JobResult
 
     def __init__(
         self,
@@ -34,7 +35,7 @@ class Job:
         self.__job_input = job_input
         self.__job_status = job_status
         self.__job_info = job_info
-        self.__generation_result = GenerationResult.new()
+        self.__job_result = JobResult.new()
 
     def update(
         self,
@@ -45,8 +46,10 @@ class Job:
         self.__job_status = job_status
         self.__job_info = job_info
 
-    def add_word_result(self, word: str, image_id: Optional[UUID]) -> None:
-        self.__generation_result.add_word_result(WordResult(word, image_id))
+    def add_generated_word_location(
+        self, generated_word_location: GeneratedWordLocation
+    ) -> None:
+        self.__job_result.add_word_location(generated_word_location)
 
     @property
     def job_id(self) -> UUID:
@@ -69,9 +72,9 @@ class Job:
         return copy.deepcopy(self.__job_info)
 
     @property
-    def generation_result(self) -> GenerationResult:
+    def job_result(self) -> JobResult:
         # Create a deep copy to prevent external modification
-        return copy.deepcopy(self.__generation_result)
+        return copy.deepcopy(self.__job_result)
 
     @staticmethod
     def validate_status_info(

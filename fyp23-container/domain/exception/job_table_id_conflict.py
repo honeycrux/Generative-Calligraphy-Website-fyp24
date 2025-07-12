@@ -1,6 +1,6 @@
-class JobTableAccessException(Exception):
+class JobTableIDConflict(Exception):
     """
-    Exception raised when there is an issue storing or retrieving a job in the job table.
+    Exception raised when there is an issue with job ID conflicts in the job table.
     """
 
     message: str
