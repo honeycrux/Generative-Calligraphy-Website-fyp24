@@ -2,6 +2,7 @@ import argparse
 import os
 from typing import Callable, Optional
 import shutil
+import random
 
 import numpy as np
 import torch as th
@@ -82,6 +83,7 @@ def main():
     parser = parser.parse_args()
 
     # read sample arguments
+    seed = parser.seed
     cfg_path = parser.cfg_path
     model_path = parser.model_path
     sty_img_path = parser.sty_img_path
@@ -114,6 +116,7 @@ def main():
 
     # run sampling
     run_sample(
+        seed=seed,
         style_image=style_image,
         character_data=character_data,
         cfg_path=cfg_path,
@@ -136,6 +139,40 @@ def load_character_data(
     img_size: int = font2img_default_args.img_size,
     char_size: int = font2img_default_args.char_size,
 ) -> tuple[Image.Image, CharacterData]:
+
+    def load_from_characters(
+        characters: str, font_path: str, img_size: int, char_size: int
+    ) -> CharacterData:
+        results, _, _ = create_character_images_from_font(
+            characters=characters,
+            font_path=font_path,
+            img_size=img_size,
+            char_size=char_size,
+        )
+        content_images = [result.image for result in results]
+
+        return CharacterData(
+            content_text=characters,
+            content_images=content_images,
+        )
+
+    def load_from_con_folder_path(
+        con_folder_path: str,
+    ) -> CharacterData:
+        # get words to be generated
+        content_text = ""
+        content_images = []
+        for file in os.listdir(con_folder_path):
+            file_name, file_extension = os.path.splitext(file)
+            if file_extension == ".png":
+                content_text += file_name[-1]
+                content_images.append(Image.open(os.path.join(con_folder_path, file)))
+
+        return CharacterData(
+            content_text=content_text,
+            content_images=content_images,
+        )
+
     style_image = Image.open(sty_img_path)
 
     assert (
@@ -165,6 +202,7 @@ def load_character_data(
 def run_sample(
     style_image: Image.Image,
     character_data: CharacterData,
+    seed: Optional[int] = sample_default_args.seed,
     cfg_path: str = sample_default_args.cfg_path,
     model_path: str = sample_default_args.model_path,
     gen_text_stroke_path: Optional[str] = sample_default_args.gen_text_stroke_path,
@@ -175,6 +213,13 @@ def run_sample(
     sk_gudiance_scale: float = sample_default_args.sk_scale,
     on_new_result: Callable[[SampledImage], None] = lambda _: None,
 ):
+    # set up seed
+    if seed is None:
+        seed = random.randint(0, 2**32 - 1)
+    th.manual_seed(seed)
+    if th.cuda.is_available():
+        th.cuda.manual_seed_all(seed)
+
     # set up cfg
     with open(cfg_path, "r", encoding="utf-8") as f:
         cfg = yaml.load(f, Loader=yaml.FullLoader)
@@ -321,26 +366,35 @@ def run_sample(
         dist.all_gather(gathered_samples, sample)
         all_images.extend([sample.cpu().numpy() for sample in gathered_samples])
 
-        for sample in gathered_samples:
-            for idx in range(sample.shape[0]):
-                word = content_text[ch_idx - cfg.batch_size + idx]
-                img_sample = sample[idx].cpu().numpy()
-                img_sample = Image.fromarray(img_sample).convert("RGB")
-                on_new_result(
-                    SampledImage(
-                        word=word,
-                        image=img_sample,
-                        current=batch_num,
-                        total=len(content_text),
-                    )
-                )
-
         gathered_labels = [th.zeros_like(classes) for _ in range(dist.get_world_size())]
         dist.all_gather(gathered_labels, classes)
         all_labels.extend([labels.cpu().numpy() for labels in gathered_labels])
+
+        for sample_idx, sample in enumerate(gathered_samples):
+            img_sample = sample[0].cpu().numpy()
+            img = Image.fromarray(img_sample).convert("RGB")
+
+            # report result to callback
+            on_new_result(
+                SampledImage(
+                    word=char,
+                    image=img,
+                    current=batch_num,
+                    total=len(content_text),
+                )
+            )
+
+            # handle image saving
+            if img_save_path is not None:
+                seq_name = "" if sample_idx == 0 else f"_{sample_idx}"
+                # img_name = "%05d%s.png" % (batch_num, seq_name)
+                img_name = f"{char}{seq_name}.png"
+                # img = remove_background(img)
+                img.save(os.path.join(img_save_path, img_name))
+                os.chmod(os.path.join(img_save_path, img_name), 0o777)
+
         logger.log(f"created {total_images} samples")
 
-    # save images
     if dist.get_rank() == 0 and img_save_path is not None:
         if len(all_images) > 0 and len(all_labels) > 0:
             image_array = np.concatenate(all_images, axis=0)
@@ -352,55 +406,11 @@ def run_sample(
             label_array = label_array[: cfg.num_samples]
             # char2idx.keys()[char2idx.values().index(label)]
 
-            for idx, (img, img_cls) in enumerate(zip(image_list, label_array)):
-                # img_name = "%05d.png" % (idx)
-                img_name = content_text[idx] + ".png"
-
-                # img = remove_background(img)
-
-                img.save(os.path.join(img_save_path, img_name))
-                os.chmod(os.path.join(img_save_path, img_name), 0o777)
-        else:
-            logger.log("No images or labels to save.")
+            # do something with image_list and label_array if needed
 
     dist.barrier()
 
     logger.log("sampling complete")
-
-
-def load_from_con_folder_path(
-    con_folder_path: str,
-) -> CharacterData:
-    # get words to be generated
-    content_text = ""
-    content_images = []
-    for file in os.listdir(con_folder_path):
-        file_name, file_extension = os.path.splitext(file)
-        if file_extension == ".png":
-            content_text += file_name[-1]
-            content_images.append(Image.open(os.path.join(con_folder_path, file)))
-
-    return CharacterData(
-        content_text=content_text,
-        content_images=content_images,
-    )
-
-
-def load_from_characters(
-    characters: str, font_path: str, img_size: int, char_size: int
-) -> CharacterData:
-    results, _, _ = create_character_images_from_font(
-        characters=characters,
-        font_path=font_path,
-        img_size=img_size,
-        char_size=char_size,
-    )
-    content_images = [result.image for result in results]
-
-    return CharacterData(
-        content_text=characters,
-        content_images=content_images,
-    )
 
 
 def remove_background(img: Image.Image):

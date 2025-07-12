@@ -1,6 +1,6 @@
 from asyncio import Task
 import asyncio
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
@@ -13,6 +13,13 @@ from fyp23_model.sample import SampledImage, load_character_data, run_sample
 
 
 class FontGenerationApplication(TextGeneratorPort):
+    __seed: Optional[int]
+    __image_save_path: Optional[str] = None
+
+    def __init__(self, seed: Optional[int], image_save_path: Optional[str]):
+        self.__seed = seed
+        self.__image_save_path = image_save_path
+
     async def __generation(
         self,
         job_input: JobInput,
@@ -46,7 +53,8 @@ class FontGenerationApplication(TextGeneratorPort):
         run_sample(
             style_image=style_image,
             character_data=character_data,
-            img_save_path="./outputs",
+            seed=self.__seed,
+            img_save_path=self.__image_save_path,
             on_new_result=on_new_result,
         )
 

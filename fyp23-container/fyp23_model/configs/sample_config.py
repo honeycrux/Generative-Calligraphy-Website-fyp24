@@ -19,6 +19,7 @@ def get_file_path(filename: str):
 class DefaultArguments(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    seed: Optional[int] = None
     cfg_path: str = get_file_path("cfg/test_cfg.yaml")
     model_path: str = get_file_path("ckpt/ema_0.9999_446000.pt")
     sty_img_path: str = get_file_path("lan.png")
@@ -35,6 +36,12 @@ sample_default_args = DefaultArguments()
 
 
 def add_sample_arguments(parser):
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=sample_default_args.seed,
+        help="random seed for reproducibility; if not provided, will use a random seed",
+    )
     parser.add_argument(
         "--cfg_path",
         type=str,

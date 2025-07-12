@@ -14,10 +14,15 @@ from domain.entity.job import Job
 from domain.value.font_gen_service_config import FontGenServiceConfig
 from domain.value.job_input import JobInput
 from domain.value.job_status import JobStatus
+from domain.value.running_state import RunningState
+from domain.value.job_info import RunningJob
 from tests.application.font_generation_application_mock import (
     FontGenerationApplicationMock,
 )
 from tests.application.image_repository_mock import ImageRepositoryMock
+from tests.application.font_generation_application_with_progress_mock import (
+    FontGenerationApplicationWithProgressMock,
+)
 
 
 ### Constants ###
@@ -27,6 +32,7 @@ TASK_PROCESSING_TIME = 0.1  # seconds
 OPERATE_QUEUE_INTERVAL = 0.01  # seconds
 MAX_RETAIN_TIME = 0.3  # seconds
 TINY_BUFFER = 0.04  # seconds; we found that 0.03 sometimes fails due to timing issues
+PROGRESS_INTERVAL = 0.1  # seconds
 
 
 ### Fixtures ###
@@ -69,7 +75,22 @@ def job_management_service_that_fails(image_repository_port) -> JobManagementSer
         run_seconds=TASK_PROCESSING_TIME,
         simulate_success=False,
     )
-    image_repository = ImageRepositoryMock()
+    return JobManagementService(
+        text_generator_port=font_application,
+        font_gen_service_config=config,
+        image_repository_port=image_repository_port,
+    )
+
+
+@pytest.fixture
+def job_management_service_with_progress(image_repository_port) -> JobManagementService:
+    config = FontGenServiceConfig(
+        operate_queue_interval=OPERATE_QUEUE_INTERVAL,
+        max_retain_time=MAX_RETAIN_TIME,
+    )
+    font_application: TextGeneratorPort = FontGenerationApplicationWithProgressMock(
+        progress_interval=PROGRESS_INTERVAL
+    )
     return JobManagementService(
         text_generator_port=font_application,
         font_gen_service_config=config,
@@ -87,6 +108,13 @@ def job_management_port_that_fails(
     job_management_service_that_fails,
 ) -> JobManagementPort:
     return job_management_service_that_fails
+
+
+@pytest.fixture
+def job_management_port_with_progress(
+    job_management_service_with_progress,
+) -> JobManagementPort:
+    return job_management_service_with_progress
 
 
 ### Helper Functions ###
@@ -164,6 +192,46 @@ def test_added_task_can_run_with_resources_available(job_management_port):
     assert (
         job.job_result is not None
     ), "Job resources should be available when the task is running"
+
+
+def test_running_state_updates_correctly(job_management_port_with_progress):
+    job_id = add_task(job_management_port_with_progress)
+
+    time.sleep(0.05)  # Allow some time for the task to start
+
+    job = retrieve_existing_task(job_management_port_with_progress, job_id)
+    assert (
+        job.job_status == JobStatus.RUNNING
+    ), "Job status should be RUNNING after starting"
+    assert isinstance(
+        job.job_info, RunningJob
+    ), "Job info should be of type RunningState"
+    assert (
+        job.job_info.running_state.name == "GENERATING"
+    ), "Running state should be GENERATING after starting the task"
+    assert (
+        job.job_info.running_state.message == "Generating 0/3 characters."
+    ), "Running state message should indicate the current progress (0/3 characters)"
+
+    time.sleep(TASK_PROCESSING_TIME)  # Wait for one character to be generated
+
+    job = retrieve_existing_task(job_management_port_with_progress, job_id)
+    assert isinstance(
+        job.job_info, RunningJob
+    ), "Job info should be of type RunningState"
+    assert (
+        job.job_info.running_state.message == "Generating 1/3 characters."
+    ), "Running state message should indicate the current progress (1/3 characters)"
+
+    time.sleep(TASK_PROCESSING_TIME)  # Wait for one character to be generated
+
+    job = retrieve_existing_task(job_management_port_with_progress, job_id)
+    assert isinstance(
+        job.job_info, RunningJob
+    ), "Job info should be of type RunningState"
+    assert (
+        job.job_info.running_state.message == "Generating 2/3 characters."
+    ), "Running state message should indicate the current progress (2/3 characters)"
 
 
 def test_started_task_can_complete_with_results_for_all_input_words(

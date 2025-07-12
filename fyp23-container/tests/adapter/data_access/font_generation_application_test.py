@@ -1,7 +1,9 @@
 from uuid import UUID
+from datetime import datetime
+
 import pytest
 import pytest_asyncio  # pytest-asyncio is needed for async tests
-from datetime import datetime
+from PIL import Image
 
 from adapter.data_access.font_generation_application import FontGenerationApplication
 from domain.value.job_input import JobInput
@@ -15,7 +17,14 @@ from domain.value.generated_word import GeneratedWord
 
 @pytest.fixture
 def font_generation_application():
-    return FontGenerationApplication()
+    font_app = FontGenerationApplication(seed=0, image_save_path=None)
+
+    # To also save images to `fyp23-container/outputs`
+    # (useful for generating true images or finding out issues),
+    # you can set the image save path:
+    # font_app = FontGenerationApplication(seed=0, image_save_path="./outputs")
+
+    return font_app
 
 
 ### Helper Function ###
@@ -58,34 +67,67 @@ async def generate_text(
 @pytest.mark.asyncio
 async def test_generate_empty_text(font_generation_application):
     result = await generate_text(font_generation_application, "")
+
     assert result == []
 
 
 @pytest.mark.asyncio
 async def test_generate_missing_word(font_generation_application):
     result = await generate_text(font_generation_application, " ")
+
     assert result == [GeneratedWord(word=" ", image=None)]
 
 
-# @pytest.mark.asyncio
-# async def test_generate_single_traditional_chinese_word(font_generation_application):
-#     result = await generate_text(font_generation_application, "書")
-#     assert result == [("书", None)]
+@pytest.mark.asyncio
+async def test_generate_single_traditional_chinese_word(font_generation_application):
+    expected_image = Image.open(
+        "./tests/adapter/data_access/test_generate_single_result/書.png"
+    ).tobytes()
+
+    result = await generate_text(font_generation_application, "書")
+
+    assert result == [GeneratedWord("書", expected_image)]
 
 
-# @pytest.mark.asyncio
-# async def test_generate_single_simplified_chinese_word(font_generation_application):
-#     result = await generate_text(font_generation_application, "书")
-#     assert result == [("书", None)]
+@pytest.mark.asyncio
+async def test_generate_single_simplified_chinese_word(font_generation_application):
+    expected_image = Image.open(
+        "./tests/adapter/data_access/test_generate_single_result/书.png"
+    ).tobytes()
+
+    result = await generate_text(font_generation_application, "书")
+
+    assert result == [GeneratedWord("书", expected_image)]
 
 
-# @pytest.mark.asyncio
-# async def test_generate_single_english_character(font_generation_application):
-#     result = await generate_text(font_generation_application, "A")
-#     assert result == [("A", None)]
+@pytest.mark.asyncio
+async def test_generate_single_english_character(font_generation_application):
+    expected_image = Image.open(
+        "./tests/adapter/data_access/test_generate_single_result/A.png"
+    ).tobytes()
+
+    result = await generate_text(font_generation_application, "A")
+
+    assert result == [GeneratedWord("A", expected_image)]
 
 
-# @pytest.mark.asyncio
-# async def test_generate_mixed_text(font_generation_application):
-#     result = await generate_text(font_generation_application, "書书 A")
-#     assert result == [("書", None), ("书", None), (" ", None), ("A", None)]
+@pytest.mark.asyncio
+async def test_generate_mixed_text(font_generation_application):
+    expected_image_0 = Image.open(
+        "./tests/adapter/data_access/test_generate_mixed_result/書.png"
+    ).tobytes()
+    expected_image_1 = Image.open(
+        "./tests/adapter/data_access/test_generate_mixed_result/书.png"
+    ).tobytes()
+    expected_image_3 = Image.open(
+        "./tests/adapter/data_access/test_generate_mixed_result/A.png"
+    ).tobytes()
+
+    result = await generate_text(font_generation_application, "書书 A")
+
+    assert result == [
+        GeneratedWord("書", expected_image_0),
+        GeneratedWord("书", expected_image_1),
+        GeneratedWord(" ", None),
+        GeneratedWord("A", expected_image_3),
+    ]

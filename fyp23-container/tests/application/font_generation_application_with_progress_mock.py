@@ -12,14 +12,12 @@ from domain.value.running_state import RunningState
 from domain.value.generated_word import GeneratedWord
 
 
-class FontGenerationApplicationMock(TextGeneratorPort):
-    __run_seconds: float  # Simulated wait time
-    __simulate_success: bool  # Simulated success flag
+class FontGenerationApplicationWithProgressMock(TextGeneratorPort):
+    __progress_interval: float  # Simulated progress interval
 
-    def __init__(self, run_seconds: float, simulate_success: bool):
+    def __init__(self, progress_interval: float):
         super().__init__()
-        self.__run_seconds = run_seconds
-        self.__simulate_success = simulate_success
+        self.__progress_interval = progress_interval
 
     async def __generation(
         self,
@@ -28,16 +26,18 @@ class FontGenerationApplicationMock(TextGeneratorPort):
         on_new_state: Callable[[RunningState], None],
         on_new_word_result: Callable[[GeneratedWord], None],
     ) -> Union[bool, str]:
-        # Simulate async operation
-        await asyncio.sleep(self.__run_seconds)
+        total_chars = len(job_input.input_text)
 
-        if not self.__simulate_success:
-            # Simulate failure
-            return "Simulated failure"
+        on_new_state(RunningState.generating(current=0, total=total_chars))
 
-        # Create some characters
-        for char in job_input.input_text:
+        # Simulate generation of each character
+        for idx, char in enumerate(job_input.input_text):
+            # Simulate async operation
+            await asyncio.sleep(self.__progress_interval)
+
             mock_image = Image.new("RGBA", size=(0, 0), color=0)
+
+            on_new_state(RunningState.generating(current=idx + 1, total=total_chars))
 
             on_new_word_result(
                 GeneratedWord(
@@ -45,6 +45,8 @@ class FontGenerationApplicationMock(TextGeneratorPort):
                     image=mock_image.tobytes(),
                 )
             )
+
+        on_new_state(RunningState.cleaning_up())
 
         return True
 
