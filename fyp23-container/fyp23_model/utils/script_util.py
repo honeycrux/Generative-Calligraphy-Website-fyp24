@@ -4,6 +4,7 @@ from . import gaussian_diffusion as gd
 from .respace import SpacedDiffusion, space_timesteps
 from .unet import UNetWithStyEncoderModel
 
+
 def diffusion_defaults():
 
     return dict(
@@ -16,6 +17,7 @@ def diffusion_defaults():
         rescale_timesteps=False,
         rescale_learned_sigmas=False,
     )
+
 
 def model_and_diffusion_defaults():
 
@@ -39,6 +41,7 @@ def model_and_diffusion_defaults():
     )
     res.update(diffusion_defaults())
     return res
+
 
 def create_model_and_diffusion(
     image_size,
@@ -96,6 +99,7 @@ def create_model_and_diffusion(
         timestep_respacing=timestep_respacing,
     )
     return model, diffusion
+
 
 def create_model(
     image_size,

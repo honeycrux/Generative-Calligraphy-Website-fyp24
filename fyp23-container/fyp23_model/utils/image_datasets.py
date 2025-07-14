@@ -1,11 +1,12 @@
 import math
 import random
 
-from PIL import Image
 import blobfile as bf
-from mpi4py import MPI
 import numpy as np
+from mpi4py import MPI
+from PIL import Image
 from torch.utils.data import DataLoader, Dataset
+
 from . import logger
 
 
@@ -30,37 +31,49 @@ def load_data(
     all_contents = _list_image_files_recursively(content_dir)
 
     chars_stroke = None
-    class_names = [bf.basename(path).split("_")[0] for path in all_files] # 0-19 # all image names
-    sorted_classes = {x: i for i, x in enumerate(sorted(set(class_names)))} # all images name -> dict
+    class_names = [
+        bf.basename(path).split("_")[0] for path in all_files
+    ]  # 0-19 # all image names
+    sorted_classes = {
+        x: i for i, x in enumerate(sorted(set(class_names)))
+    }  # all images name -> dict
     classes = [sorted_classes[x] for x in class_names]
-    sty_class_names = [bf.dirname(path).split("/")[-1] for path in all_files] # style of each images
+    sty_class_names = [
+        bf.dirname(path).split("/")[-1] for path in all_files
+    ]  # style of each images
     sty_sorted_classes = {x: i for i, x in enumerate(sorted(set(sty_class_names)))}
     sty_classes = [sty_sorted_classes[x] for x in sty_class_names]
 
     # added
     content_class_names = [bf.basename(path).split("_")[0] for path in all_contents]
-    content_sorted_classes = {x: i for i, x in enumerate(sorted(set(content_class_names)))} # all images name -> dict
+    content_sorted_classes = {
+        x: i for i, x in enumerate(sorted(set(content_class_names)))
+    }  # all images name -> dict
     content_classes = [content_sorted_classes[x] for x in content_class_names]
 
     if stroke_path is not None:
-        logger.log('=' * 20)
+        logger.log("=" * 20)
         logger.log("using strokes data")
-        logger.log('=' * 20)
+        logger.log("=" * 20)
 
         chars_stroke = np.empty([0, 32], dtype=np.float32)
-        with open(stroke_path, 'r', encoding='utf-8') as f:
+        with open(stroke_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
             for line in lines:
                 strokes = line.split(" ")[1:-1]
                 char_stroke = []
                 for stroke in strokes:
                     char_stroke.append(int(stroke))
-                while len(char_stroke) < 32: # for korean
+                while len(char_stroke) < 32:  # for korean
                     char_stroke.append(0)
                 assert len(char_stroke) == 32
-                chars_stroke = np.concatenate([chars_stroke, np.array(char_stroke).reshape([1, 32])], axis=0, dtype=np.float32)
+                chars_stroke = np.concatenate(
+                    [chars_stroke, np.array(char_stroke).reshape([1, 32])],
+                    axis=0,
+                    dtype=np.float32,
+                )
 
-    '''if classifier_free:
+    """if classifier_free:
         dataset = ImageDataset_Clsfree(
             image_size,
             all_files,
@@ -74,7 +87,7 @@ def load_data(
             random_flip=random_flip,
             chars_stroke=chars_stroke,
         )
-    else:'''
+    else:"""
     dataset = ImageDataset(
         image_size,
         all_files,
@@ -129,12 +142,18 @@ class ImageDataset(Dataset):
     ):
         super().__init__()
         self.resolution = resolution
-        self.local_images = image_paths[shard:][::num_shards] # path of all images
-        self.local_contents = content_paths[shard:][::num_shards] # added
+        self.local_images = image_paths[shard:][::num_shards]  # path of all images
+        self.local_contents = content_paths[shard:][::num_shards]  # added
 
-        self.local_classes = None if classes is None else classes[shard:][::num_shards] # 0 to 2999, repeat 20
-        self.content_classes = None if content_classes is None else content_classes[shard:][::num_shards] # added
-        self.style_classes = None if sty_classes is None else sty_classes[shard:][::num_shards]
+        self.local_classes = (
+            None if classes is None else classes[shard:][::num_shards]
+        )  # 0 to 2999, repeat 20
+        self.content_classes = (
+            None if content_classes is None else content_classes[shard:][::num_shards]
+        )  # added
+        self.style_classes = (
+            None if sty_classes is None else sty_classes[shard:][::num_shards]
+        )
 
         self.random_crop = random_crop
         self.random_flip = random_flip
@@ -144,14 +163,18 @@ class ImageDataset(Dataset):
             sty_classes_set = set(self.style_classes)
             self.sty_classes_idxs = {}
             for sty_class in sty_classes_set:
-                self.sty_classes_idxs[sty_class] = np.where(np.array(self.style_classes) == sty_class)[0]
+                self.sty_classes_idxs[sty_class] = np.where(
+                    np.array(self.style_classes) == sty_class
+                )[0]
 
         # added
         if self.content_classes is not None:
             con_classes_set = set(self.content_classes)
             self.con_classes_idxs = {}
             for con_class in con_classes_set:
-                self.con_classes_idxs[con_class] = np.where(np.array(self.content_classes) == con_class)[0]
+                self.con_classes_idxs[con_class] = np.where(
+                    np.array(self.content_classes) == con_class
+                )[0]
 
     def __len__(self):
         return len(self.local_images)
@@ -181,8 +204,10 @@ class ImageDataset(Dataset):
         # style
         if self.style_classes is not None:
             # len(self.sty_classes_idxs) = 19
-            sty_img_idxs = self.sty_classes_idxs[self.style_classes[idx]] #len(self.style_classes) = 56916
-            rand_sty_idx = np.random.choice(sty_img_idxs) # sty_img_idxs is an array
+            sty_img_idxs = self.sty_classes_idxs[
+                self.style_classes[idx]
+            ]  # len(self.style_classes) = 56916
+            rand_sty_idx = np.random.choice(sty_img_idxs)  # sty_img_idxs is an array
             sty_img_path = self.local_images[rand_sty_idx]
             with bf.BlobFile(sty_img_path, "rb") as f:
                 sty_pil_image = Image.open(f)
@@ -192,31 +217,36 @@ class ImageDataset(Dataset):
             sty_arr = sty_arr.astype(np.float32) / 127.5 - 1
 
             # content
-            #self.content_classes[idx] index out of range
+            # self.content_classes[idx] index out of range
             # len(self.con_classes_idxs) = 3000
-            #con_img_idxs = self.con_classes_idxs[self.content_classes[idx]] # len(self.content_classes)=3000
-            #rand_con_idx = np.random.choice(con_img_idxs)
-            #rand_con_idx = np.random.choice(self.content_classes)
-            
+            # con_img_idxs = self.con_classes_idxs[self.content_classes[idx]] # len(self.content_classes)=3000
+            # rand_con_idx = np.random.choice(con_img_idxs)
+            # rand_con_idx = np.random.choice(self.content_classes)
+
             if self.local_contents is not None:
                 con_img_path = self.local_contents[self.local_classes[idx]]
-                #con_img_path = self.local_contents[rand_con_idx]
+                # con_img_path = self.local_contents[rand_con_idx]
                 with bf.BlobFile(con_img_path, "rb") as f:
                     con_pil_image = Image.open(f)
                     con_pil_image.load()
                 con_pil_image = con_pil_image.convert("RGB")
                 con_arr = center_crop_arr(con_pil_image, self.resolution)
-                con_arr = con_arr.astype(np.float32) / 127.5 - 1            
+                con_arr = con_arr.astype(np.float32) / 127.5 - 1
 
             # stroke
             if self.chars_stroke is not None:
                 # out_dict["stroke"] = self.chars_stroke[self.local_classes[idx]]
                 out_dict["mask_stroke"] = False
-            return [np.transpose(arr, [2, 0, 1]), np.transpose(sty_arr, [2, 0, 1]), np.transpose(con_arr, [2, 0, 1])], out_dict  #change this
+            return [
+                np.transpose(arr, [2, 0, 1]),
+                np.transpose(sty_arr, [2, 0, 1]),
+                np.transpose(con_arr, [2, 0, 1]),
+            ], out_dict  # change this
 
         return np.transpose(arr, [2, 0, 1]), out_dict
 
-'''class ImageDataset_Clsfree(Dataset):
+
+"""class ImageDataset_Clsfree(Dataset):
     def __init__(
         self,
         resolution,
@@ -289,7 +319,8 @@ class ImageDataset(Dataset):
                 out_dict["stroke"] = self.chars_stroke[self.local_classes[idx]]
                 out_dict["mask_stroke"] = random.random() < 0.3
             return [np.transpose(arr, [2, 0, 1]), np.transpose(sty_arr, [2, 0, 1])], out_dict
-        return np.transpose(arr, [2, 0, 1]), out_dict'''
+        return np.transpose(arr, [2, 0, 1]), out_dict"""
+
 
 def center_crop_arr(pil_image, image_size):
     # We are not on a new enough PIL to support the `reducing_gap`

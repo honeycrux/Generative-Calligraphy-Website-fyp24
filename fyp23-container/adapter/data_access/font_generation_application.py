@@ -1,14 +1,12 @@
-from asyncio import Task
 import asyncio
+from asyncio import Task
 from typing import Callable, Optional, Union
 
+from application.port_out.text_generator_port import TextGeneratorPort
+from domain.value.generated_word import GeneratedWord
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
-from domain.value.generated_word import GeneratedWord
-from application.port_out.text_generator_port import (
-    TextGeneratorPort,
-)
 from fyp23_model.sample import SampledImage, load_character_data, run_sample
 
 

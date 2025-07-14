@@ -1,14 +1,15 @@
-from typing import Optional
-from PIL import Image, ImageDraw, ImageFont
-import os
-import numpy as np
-import pathlib
 import argparse
+import os
+import pathlib
+from typing import Optional
+
+import numpy as np
 from fontTools.ttLib import TTFont
+from PIL import Image, ImageDraw, ImageFont
 
 from fyp23_model.configs.font2img_config import (
-    font2img_default_args,
     add_font2img_arguments,
+    font2img_default_args,
 )
 
 

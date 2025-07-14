@@ -207,7 +207,7 @@ def test_running_state_updates_correctly(job_management_port_with_progress):
         job.job_info.running_state.name == "generating"
     ), "Running state should be generating after starting the job"
     assert (
-        job.job_info.running_state.message == "Generating 0/3 characters."
+        job.job_info.running_state.message == "Generating 0/3 characters"
     ), "Running state message should indicate the current progress (0/3 characters)"
 
     # Wait for one character to be generated
@@ -218,7 +218,7 @@ def test_running_state_updates_correctly(job_management_port_with_progress):
         job.job_info, RunningJob
     ), "Job info should be of type RunningState"
     assert (
-        job.job_info.running_state.message == "Generating 1/3 characters."
+        job.job_info.running_state.message == "Generating 1/3 characters"
     ), "Running state message should indicate the current progress (1/3 characters)"
 
     # Wait for one character to be generated
@@ -229,7 +229,7 @@ def test_running_state_updates_correctly(job_management_port_with_progress):
         job.job_info, RunningJob
     ), "Job info should be of type RunningState"
     assert (
-        job.job_info.running_state.message == "Generating 2/3 characters."
+        job.job_info.running_state.message == "Generating 2/3 characters"
     ), "Running state message should indicate the current progress (2/3 characters)"
 
 

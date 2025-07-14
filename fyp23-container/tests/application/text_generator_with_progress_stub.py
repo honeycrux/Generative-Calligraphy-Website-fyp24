@@ -1,15 +1,14 @@
-from asyncio import Task
 import asyncio
+from asyncio import Task
 from typing import Callable, Union
+
 from PIL import Image
 
-from application.port_out.text_generator_port import (
-    TextGeneratorPort,
-)
+from application.port_out.text_generator_port import TextGeneratorPort
+from domain.value.generated_word import GeneratedWord
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
-from domain.value.generated_word import GeneratedWord
 
 
 class TextGeneratorWithProgressStub(TextGeneratorPort):

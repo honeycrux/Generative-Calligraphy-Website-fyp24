@@ -1,12 +1,12 @@
 import io
 import os
-import socket
 import platform
+import socket
 
 import blobfile as bf
-from mpi4py import MPI
 import torch as th
 import torch.distributed as dist
+from mpi4py import MPI
 
 # Change this to reflect your cluster layout.
 # The GPU for a given rank is (rank % GPUS_PER_NODE).
@@ -19,10 +19,14 @@ def setup_dist():
 
     if dist.is_initialized():
         return
-    os.environ["CUDA_VISIBLE_DEVICES"] = f"{(MPI.COMM_WORLD.Get_rank()) % GPUS_PER_NODE}"
+    os.environ["CUDA_VISIBLE_DEVICES"] = (
+        f"{(MPI.COMM_WORLD.Get_rank()) % GPUS_PER_NODE}"
+    )
 
     comm = MPI.COMM_WORLD
-    backend = "nccl" if th.cuda.is_available() and platform.system() != "Windows" else "gloo"
+    backend = (
+        "nccl" if th.cuda.is_available() and platform.system() != "Windows" else "gloo"
+    )
 
     if backend == "gloo":
         hostname = "localhost"
@@ -43,10 +47,11 @@ def dev():
         return th.device(f"cuda")
     return th.device("cpu")
 
+
 # load model parameter when sampling
 def load_state_dict(path, **kwargs):
 
-    chunk_size = 2 ** 30  # MPI has a relatively small size limit
+    chunk_size = 2**30  # MPI has a relatively small size limit
     if MPI.COMM_WORLD.Get_rank() == 0:
         with bf.BlobFile(path, "rb") as f:
             data = f.read()

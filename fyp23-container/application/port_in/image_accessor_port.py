@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from uuid import UUID
 from typing import Optional
+from uuid import UUID
 
 
 class ImageAccessorPort(ABC):

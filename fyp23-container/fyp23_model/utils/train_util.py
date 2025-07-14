@@ -94,7 +94,6 @@ class TrainLoop:
                 for _ in range(len(self.ema_rate))
             ]
 
-
         if th.cuda.is_available():
             self.use_ddp = True
             # classifier free: true/false
@@ -130,7 +129,6 @@ class TrainLoop:
             )
             self.model.load_state_dict(model_state)
 
-
     def _load_ema_parameters(self, rate):
         ema_params = copy.deepcopy(self.mp_trainer.master_params)
 
@@ -162,13 +160,12 @@ class TrainLoop:
             self.opt.load_state_dict(state_dict)
 
     # Training Loop
-            
+
     def run_loop(self):
-        if self.classifier_free: # True
-            while (
-                    self.step + self.resume_step < self.total_train_step
-                    and (not self.lr_anneal_steps
-                         or self.step + self.resume_step < self.lr_anneal_steps)
+        if self.classifier_free:  # True
+            while self.step + self.resume_step < self.total_train_step and (
+                not self.lr_anneal_steps
+                or self.step + self.resume_step < self.lr_anneal_steps
             ):
                 batch, cond = next(self.data)
                 self.run_step(batch, cond)
@@ -181,11 +178,10 @@ class TrainLoop:
                         return
                 self.step += 1
 
-        else: # False
-            while (
-                    self.step + self.resume_step < self.train_step
-                    and (not self.lr_anneal_steps
-                         or self.step + self.resume_step < self.lr_anneal_steps)
+        else:  # False
+            while self.step + self.resume_step < self.train_step and (
+                not self.lr_anneal_steps
+                or self.step + self.resume_step < self.lr_anneal_steps
             ):
                 batch, cond = next(self.data)
                 self.run_step(batch, cond)
@@ -210,26 +206,28 @@ class TrainLoop:
         self._anneal_lr()
         self.log_step()
 
-    def forward_backward(self, batch, cond):    # training losses in Gaussian Difussion
+    def forward_backward(self, batch, cond):  # training losses in Gaussian Difussion
         self.mp_trainer.zero_grad()
 
-        con_batch = batch[2]    # add for content encoding
+        con_batch = batch[2]  # add for content encoding
         sty_batch = batch[1]
-        batch = batch[0]    #x
+        batch = batch[0]  # x
         # batch_with_content = th.cat((con_batch, batch), dim = 1)
-        
+
         assert batch.shape[0] == sty_batch.shape[0]
 
         for i in range(0, batch.shape[0], self.microbatch):
             # micro = batch_with_content[i: i + self.microbatch].to(dist_util.dev())
-            micro = batch[i: i + self.microbatch].to(dist_util.dev()) 
+            micro = batch[i : i + self.microbatch].to(dist_util.dev())
             micro_cond = {
-                k: v[i: i + self.microbatch].to(dist_util.dev())
+                k: v[i : i + self.microbatch].to(dist_util.dev())
                 for k, v in cond.items()
             }
-            micro_sty = sty_batch[i: i + self.microbatch].to(dist_util.dev())
-            micro_cond['sty'] = self.ddp_model.module.sty_encoder(micro_sty.clone().detach())
-            micro_cond['cont'] = con_batch
+            micro_sty = sty_batch[i : i + self.microbatch].to(dist_util.dev())
+            micro_cond["sty"] = self.ddp_model.module.sty_encoder(
+                micro_sty.clone().detach()
+            )
+            micro_cond["cont"] = con_batch
 
             # content encoding
             # micro_con = con_batch[i: i + self.microbatch].to(dist_util.dev())

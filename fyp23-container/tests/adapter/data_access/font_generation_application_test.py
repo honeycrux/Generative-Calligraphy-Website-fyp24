@@ -1,16 +1,15 @@
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
 
 import pytest
 import pytest_asyncio  # pytest-asyncio is needed for async tests
 from PIL import Image
 
 from adapter.data_access.font_generation_application import FontGenerationApplication
-from domain.value.job_input import JobInput
-from domain.value.job_info import RunningJob
-from domain.value.running_state import RunningState
 from domain.value.generated_word import GeneratedWord
-
+from domain.value.job_info import RunningJob
+from domain.value.job_input import JobInput
+from domain.value.running_state import RunningState
 
 ### Fixtures ###
 

@@ -1,12 +1,12 @@
 from uuid import UUID
+
 import pytest
 from PIL import Image
 
+from application.image_access_service import ImageAccessService
 from application.port_in.image_accessor_port import ImageAccessorPort
 from application.port_out.image_repository_port import ImageRepositoryPort
-from application.image_access_service import ImageAccessService
 from tests.application.image_repository_stub import ImageRepositoryStub
-
 
 ### Fixtures ###
 

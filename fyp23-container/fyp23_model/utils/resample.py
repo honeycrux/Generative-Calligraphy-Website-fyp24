@@ -10,7 +10,7 @@ def create_named_schedule_sampler(name, diffusion):
     if name == "uniform":
         return UniformSampler(diffusion)
     elif name == "loss-second-moment":
-        return LossSecondMomentResampler(diffusion) #
+        return LossSecondMomentResampler(diffusion)  #
     else:
         raise NotImplementedError(f"unknown schedule sampler: {name}")
 
@@ -88,6 +88,7 @@ class LossAwareSampler(ScheduleSampler):
         :param losses: a list of float losses, one per timestep.
         """
 
+
 class LossSecondMomentResampler(LossAwareSampler):
     def __init__(self, diffusion, history_per_term=10, uniform_prob=0.001):
         self.diffusion = diffusion
@@ -101,7 +102,7 @@ class LossSecondMomentResampler(LossAwareSampler):
     def weights(self):
         if not self._warmed_up():
             return np.ones([self.diffusion.num_timesteps], dtype=np.float64)
-        weights = np.sqrt(np.mean(self._loss_history ** 2, axis=-1))
+        weights = np.sqrt(np.mean(self._loss_history**2, axis=-1))
         weights /= np.sum(weights)
         weights *= 1 - self.uniform_prob
         weights += self.uniform_prob / len(weights)

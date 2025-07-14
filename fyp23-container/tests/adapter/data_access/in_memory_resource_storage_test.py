@@ -1,8 +1,8 @@
-import pytest
 from uuid import UUID
 
-from adapter.data_access.in_memory_resource_storage import InMemoryResourceStorage
+import pytest
 
+from adapter.data_access.in_memory_resource_storage import InMemoryResourceStorage
 
 ### Fixtures ###
 

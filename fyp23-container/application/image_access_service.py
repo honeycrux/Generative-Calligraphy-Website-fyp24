@@ -1,5 +1,5 @@
-from uuid import UUID
 from typing import Optional
+from uuid import UUID
 
 from application.port_in.image_accessor_port import ImageAccessorPort
 from application.port_out.image_repository_port import ImageRepositoryPort

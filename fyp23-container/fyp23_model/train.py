@@ -1,19 +1,18 @@
 import argparse
 
 import torch as th
-from attrdict import AttrDict
 import yaml
-
+from attrdict import AttrDict
+from configs.train_config import add_train_arguments, create_train_cfg
 from utils import dist_util, logger
-from utils.word_imagesets import load_data
 from utils.resample import create_named_schedule_sampler
 from utils.script_util import (
-    model_and_diffusion_defaults,
     args_to_dict,
     create_model_and_diffusion,
+    model_and_diffusion_defaults,
 )
 from utils.train_util import TrainLoop
-from configs.train_config import add_train_arguments, create_train_cfg
+from utils.word_imagesets import load_data
 
 
 def main():

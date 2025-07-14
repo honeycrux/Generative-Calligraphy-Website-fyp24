@@ -2,11 +2,10 @@ from abc import ABC, abstractmethod
 from asyncio import Task
 from typing import Callable, Optional, Union
 
-
+from domain.value.generated_word import GeneratedWord
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
-from domain.value.generated_word import GeneratedWord
 
 
 class TextGeneratorPort(ABC):
