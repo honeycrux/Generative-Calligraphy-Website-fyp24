@@ -1,6 +1,5 @@
 import time
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 import pytest
@@ -10,93 +9,20 @@ from adapter.presentation.dependencies import (
     get_font_gen_service_config,
     get_image_repository_port,
     get_text_generator_port,
-    reset_all_dependencies,
 )
 from app import app
-from application.port_out.image_repository_port import ImageRepositoryPort
-from application.port_out.text_generator_port import TextGeneratorPort
-from domain.value.font_gen_service_config import FontGenServiceConfig
-from tests.application.image_repository_stub import ImageRepositoryStub
-from tests.application.text_generator_stub import TextGeneratorStub
-
-### Constants ###
-
-
-JOB_PROCESSING_TIME = 0.1  # seconds
-OPERATE_QUEUE_INTERVAL = 0.01  # seconds
-MAX_RETAIN_TIME = 0.3  # seconds
-TINY_BUFFER = 0.04  # seconds; we found that 0.03 sometimes fails due to timing issues
-
+from tests.adapter.presentation.test_dependencies import (
+    JOB_PROCESSING_TIME,
+    OPERATE_QUEUE_INTERVAL,
+    TINY_BUFFER,
+    override_font_gen_service_config,
+    override_image_repository_port,
+    override_text_generator_port,
+    override_text_generator_port_that_fails,
+    reset_all_test_dependencies,
+)
 
 ### Dependency Overrides ###
-
-
-class TextGeneratorProvider:
-    __text_generator_port: Optional[TextGeneratorPort] = None
-    __simulate_success: bool
-
-    def __init__(self, simulate_success: bool):
-        self.__simulate_success = simulate_success
-
-    def __call__(self) -> TextGeneratorPort:
-        if self.__text_generator_port is None:
-            self.__text_generator_port = TextGeneratorStub(
-                job_processing_time=JOB_PROCESSING_TIME,
-                simulate_success=self.__simulate_success,
-            )
-        return self.__text_generator_port
-
-    def reset(self):
-        self.__text_generator_port = None
-
-
-override_text_generator_port = TextGeneratorProvider(simulate_success=True)
-
-override_text_generator_port_that_fails = TextGeneratorProvider(simulate_success=False)
-
-
-class ImageRepositoryProvider:
-    __image_repository_port: Optional[ImageRepositoryPort] = None
-
-    def __call__(self) -> ImageRepositoryPort:
-        if self.__image_repository_port is None:
-            self.__image_repository_port = ImageRepositoryStub()
-        return self.__image_repository_port
-
-    def reset(self):
-        self.__image_repository_port = None
-
-
-override_image_repository_port = ImageRepositoryProvider()
-
-
-class FontGenServiceConfigProvider:
-    __font_gen_service_config: Optional[FontGenServiceConfig] = None
-
-    def __call__(self) -> FontGenServiceConfig:
-        if self.__font_gen_service_config is None:
-            self.__font_gen_service_config = FontGenServiceConfig(
-                operate_queue_interval=OPERATE_QUEUE_INTERVAL,
-                max_retain_time=MAX_RETAIN_TIME,
-            )
-        return self.__font_gen_service_config
-
-    def reset(self):
-        self.__font_gen_service_config = None
-
-
-override_font_gen_service_config = FontGenServiceConfigProvider()
-
-
-def reset_all_test_dependencies():
-    """Reset all singleton instances used in tests to their initial state."""
-
-    override_text_generator_port.reset()
-    override_text_generator_port_that_fails.reset()
-    override_image_repository_port.reset()
-    override_font_gen_service_config.reset()
-
-    reset_all_dependencies()
 
 
 def setup_default_dependency_overrides():
@@ -113,8 +39,9 @@ def setup_default_dependency_overrides():
 
 
 @pytest.fixture
-def client():
+def test_client():
     client = TestClient(app)
+
     reset_all_test_dependencies()
 
     setup_default_dependency_overrides()
@@ -154,70 +81,70 @@ def assert_job_result_is_valid(job_result):
 ### Tests ###
 
 
-def test_start_job_with_valid_input(client):
-    response = client.post("/start_job", json={"input_text": ""})
+def test_start_job_with_valid_input(test_client):
+    response = test_client.post("/start_job", json={"input_text": ""})
     assert response.status_code == 200
     assert "job_id" in response.json()
     assert is_valid_uuid(response.json()["job_id"])
 
 
-def test_start_job_with_invalid_input(client):
-    response = client.post("/start_job")
+def test_start_job_with_invalid_input(test_client):
+    response = test_client.post("/start_job")
     assert response.status_code == 422
     assert response.json()["detail"][0]["msg"] == "Field required"
 
 
-def test_interrupt_non_existent_job(client):
-    response = client.post(
+def test_interrupt_non_existent_job(test_client):
+    response = test_client.post(
         "/interrupt_job", json={"job_id": "12345678-1234-5678-1234-567812345678"}
     )
     assert response.status_code == 200
     assert response.json() == {}
 
 
-def test_interrupt_existent_job(client):
+def test_interrupt_existent_job(test_client):
     # Start a job
-    start_response = client.post("/start_job", json={"input_text": ""})
+    start_response = test_client.post("/start_job", json={"input_text": ""})
     assert start_response.status_code == 200
     job_id = start_response.json()["job_id"]
 
     # Interrupt the job
-    response = client.post("/interrupt_job", json={"job_id": job_id})
+    response = test_client.post("/interrupt_job", json={"job_id": job_id})
     assert response.status_code == 200
     assert response.json() == {}
 
 
-def test_interrupt_job_with_invalid_id(client):
-    response = client.post("/interrupt_job", json={"job_id": "invalid-id"})
+def test_interrupt_job_with_invalid_id(test_client):
+    response = test_client.post("/interrupt_job", json={"job_id": "invalid-id"})
     assert response.status_code == 422
     assert response.json() == {"detail": "Invalid ID format"}
 
 
-def test_retrieve_non_existent_job(client):
-    response = client.get(
+def test_retrieve_non_existent_job(test_client):
+    response = test_client.get(
         "/retrieve_job", params={"job_id": "12345678-1234-5678-1234-567812345678"}
     )
     assert response.status_code == 404
     assert response.json() == {"detail": "Job not found"}
 
 
-def test_retrieve_existent_job(client):
+def test_retrieve_existent_job(test_client):
     # Start a job
-    start_response = client.post("/start_job", json={"input_text": ""})
+    start_response = test_client.post("/start_job", json={"input_text": ""})
     assert start_response.status_code == 200
     job_id = start_response.json()["job_id"]
 
     # Retrieve the job
-    response = client.get("/retrieve_job", params={"job_id": job_id})
+    response = test_client.get("/retrieve_job", params={"job_id": job_id})
     assert response.status_code == 200
 
     response_body = response.json()
     assert response_body["job_id"] == job_id
 
 
-def test_retrieve_running_job(client):
+def test_retrieve_running_job(test_client):
     # Start a job
-    start_response = client.post("/start_job", json={"input_text": "中文字"})
+    start_response = test_client.post("/start_job", json={"input_text": "中文字"})
     assert start_response.status_code == 200
     job_id = start_response.json()["job_id"]
 
@@ -225,7 +152,7 @@ def test_retrieve_running_job(client):
     time.sleep(JOB_PROCESSING_TIME / 2)
 
     # Retrieve the job
-    response = client.get("/retrieve_job", params={"job_id": job_id})
+    response = test_client.get("/retrieve_job", params={"job_id": job_id})
     assert response.status_code == 200
 
     response_body = response.json()
@@ -241,13 +168,13 @@ def test_retrieve_running_job(client):
     assert_job_result_is_valid(response_body["job_result"])
 
 
-def test_retrieve_waiting_job(client):
+def test_retrieve_waiting_job(test_client):
     # Start two jobs
-    start_response = client.post("/start_job", json={"input_text": "中文字"})
+    start_response = test_client.post("/start_job", json={"input_text": "中文字"})
     assert start_response.status_code == 200
     job_id = start_response.json()["job_id"]
 
-    start_response_2 = client.post("/start_job", json={"input_text": "中文字"})
+    start_response_2 = test_client.post("/start_job", json={"input_text": "中文字"})
     assert start_response_2.status_code == 200
     job_id_2 = start_response_2.json()["job_id"]
 
@@ -255,13 +182,13 @@ def test_retrieve_waiting_job(client):
     time.sleep(JOB_PROCESSING_TIME / 2)
 
     # Ensure the first job is running
-    response = client.get("/retrieve_job", params={"job_id": job_id})
+    response = test_client.get("/retrieve_job", params={"job_id": job_id})
     assert response.status_code == 200
 
     assert response.json()["job_status"] == "running"
 
     # Retrieve the second job
-    response_2 = client.get("/retrieve_job", params={"job_id": job_id_2})
+    response_2 = test_client.get("/retrieve_job", params={"job_id": job_id_2})
     assert response_2.status_code == 200
 
     response_body = response_2.json()
@@ -275,9 +202,9 @@ def test_retrieve_waiting_job(client):
     assert response_body["job_result"] == {"generated_word_locations": []}
 
 
-def test_retrieve_completed_job(client):
+def test_retrieve_completed_job(test_client):
     # Start a job
-    start_response = client.post("/start_job", json={"input_text": "中文字"})
+    start_response = test_client.post("/start_job", json={"input_text": "中文字"})
     assert start_response.status_code == 200
     job_id = start_response.json()["job_id"]
 
@@ -285,7 +212,7 @@ def test_retrieve_completed_job(client):
     time.sleep(JOB_PROCESSING_TIME + OPERATE_QUEUE_INTERVAL + TINY_BUFFER)
 
     # Retrieve the job
-    response = client.get("/retrieve_job", params={"job_id": job_id})
+    response = test_client.get("/retrieve_job", params={"job_id": job_id})
     assert response.status_code == 200
 
     response_body = response.json()
@@ -300,14 +227,14 @@ def test_retrieve_completed_job(client):
     assert_job_result_is_valid(response_body["job_result"])
 
 
-def test_retrieve_failed_job(client):
+def test_retrieve_failed_job(test_client):
     # Modify the dependency override to simulate a failure
     app.dependency_overrides[get_text_generator_port] = (
         override_text_generator_port_that_fails
     )
 
     # Start a job
-    start_response = client.post("/start_job", json={"input_text": "中文字"})
+    start_response = test_client.post("/start_job", json={"input_text": "中文字"})
     assert start_response.status_code == 200
     job_id = start_response.json()["job_id"]
 
@@ -315,7 +242,7 @@ def test_retrieve_failed_job(client):
     time.sleep(JOB_PROCESSING_TIME + OPERATE_QUEUE_INTERVAL + TINY_BUFFER)
 
     # Retrieve the job
-    response = client.get("/retrieve_job", params={"job_id": job_id})
+    response = test_client.get("/retrieve_job", params={"job_id": job_id})
     assert response.status_code == 200
 
     response_body = response.json()
@@ -334,24 +261,24 @@ def test_retrieve_failed_job(client):
     app.dependency_overrides = {}
 
 
-def test_retrieve_cancelled_job(client):
+def test_retrieve_cancelled_job(test_client):
     # Start a job
-    start_response = client.post("/start_job", json={"input_text": "中文字"})
+    start_response = test_client.post("/start_job", json={"input_text": "中文字"})
     assert start_response.status_code == 200
     job_id = start_response.json()["job_id"]
 
     # Ensure the job is waiting or running
-    response = client.get("/retrieve_job", params={"job_id": job_id})
+    response = test_client.get("/retrieve_job", params={"job_id": job_id})
     assert response.status_code == 200
     assert response.json()["job_status"] in ["waiting", "running"]
 
     # Cancel the job
-    response = client.post("/interrupt_job", json={"job_id": job_id})
+    response = test_client.post("/interrupt_job", json={"job_id": job_id})
     assert response.status_code == 200
     assert response.json() == {}
 
     # Retrieve the cancelled job
-    response = client.get("/retrieve_job", params={"job_id": job_id})
+    response = test_client.get("/retrieve_job", params={"job_id": job_id})
     assert response.status_code == 200
 
     response_body = response.json()
