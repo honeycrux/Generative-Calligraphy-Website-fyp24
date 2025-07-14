@@ -1,8 +1,6 @@
 import copy
-from typing import Optional
 from uuid import UUID
 
-from domain.value.job_result import JobResult
 from domain.value.generated_word_location import GeneratedWordLocation
 from domain.value.job_info import (
     CancelledJob,
@@ -13,6 +11,7 @@ from domain.value.job_info import (
     WaitingJob,
 )
 from domain.value.job_input import JobInput
+from domain.value.job_result import JobResult
 from domain.value.job_status import JobStatus
 
 
@@ -81,17 +80,17 @@ class Job:
         job_status: JobStatus,
         job_info: JobInfo,
     ) -> None:
-        if job_status == JobStatus.WAITING and not isinstance(job_info, WaitingJob):
-            raise ValueError("Job status is WAITING but job info is not a WaitingJob.")
-        if job_status == JobStatus.RUNNING and not isinstance(job_info, RunningJob):
-            raise ValueError("Job status is RUNNING but job info is not a RunningJob.")
-        if job_status == JobStatus.COMPLETED and not isinstance(job_info, CompletedJob):
+        if job_status == JobStatus.Waiting and not isinstance(job_info, WaitingJob):
+            raise ValueError("Job status is waiting but job info is not a WaitingJob.")
+        if job_status == JobStatus.Running and not isinstance(job_info, RunningJob):
+            raise ValueError("Job status is running but job info is not a RunningJob.")
+        if job_status == JobStatus.Completed and not isinstance(job_info, CompletedJob):
             raise ValueError(
-                "Job status is COMPLETED but job info is not a CompletedJob."
+                "Job status is completed but job info is not a CompletedJob."
             )
-        if job_status == JobStatus.FAILED and not isinstance(job_info, FailedJob):
-            raise ValueError("Job status is FAILED but job info is not a FailedJob.")
-        if job_status == JobStatus.CANCELLED and not isinstance(job_info, CancelledJob):
+        if job_status == JobStatus.Failed and not isinstance(job_info, FailedJob):
+            raise ValueError("Job status is failed but job info is not a FailedJob.")
+        if job_status == JobStatus.Cancelled and not isinstance(job_info, CancelledJob):
             raise ValueError(
-                "Job status is CANCELLED but job info is not a CancelledJob."
+                "Job status is cancelled but job info is not a CancelledJob."
             )

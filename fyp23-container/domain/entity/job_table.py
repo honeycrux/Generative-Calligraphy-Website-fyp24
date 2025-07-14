@@ -5,13 +5,8 @@ from uuid import UUID
 
 from domain.entity.job import Job
 from domain.exception.job_table_id_conflict import JobTableIDConflict
+from domain.value.job_info import CancelledJob, RunningJob, StoppedJob, WaitingJob
 from domain.value.job_result import JobResult
-from domain.value.job_info import (
-    CancelledJob,
-    RunningJob,
-    StoppedJob,
-    WaitingJob,
-)
 from domain.value.job_status import JobStatus
 
 
@@ -39,26 +34,33 @@ class JobTable:
             return None
         return self.__jobs[job_id]
 
-    def cancel_job(self, task_id: UUID) -> None:
-        job = self.get_job(task_id)
+    def cancel_job(self, job_id: UUID) -> None:
+        job = self.get_job(job_id)
         if job is None:
-            # Task not found, nothing to interrupt
+            # Job not found, nothing to interrupt
             return
         if not (
             isinstance(job.job_info, WaitingJob) or isinstance(job.job_info, RunningJob)
         ):
-            # Task is not in a state that can be interrupted
+            # Job is not in a state that can be interrupted
             return
 
-        coroutine = self.__get_coroutine(task_id)
+        coroutine = self.__get_coroutine(job_id)
         if coroutine is not None and not coroutine.cancelled():
             # Cancel the executing coroutine if it exists
             coroutine.cancel()
 
         job.update(
-            job_status=JobStatus.CANCELLED,
+            job_status=JobStatus.Cancelled,
             job_info=CancelledJob.of(job.job_info),
         )
+
+    def shift_job_queue(self) -> Optional[Job]:
+        for job in self.__jobs.values():
+            if isinstance(job.job_info, WaitingJob):
+                new_job_info = job.job_info.move_up_queue()
+                job.update(job_status=JobStatus.Waiting, job_info=new_job_info)
+                return job
 
     def add_coroutine(self, job_id: UUID, coroutine: Task) -> None:
         if job_id not in self.__jobs:

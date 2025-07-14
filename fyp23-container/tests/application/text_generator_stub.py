@@ -1,24 +1,23 @@
-from asyncio import Task
 import asyncio
+from asyncio import Task
 from typing import Callable, Union
+
 from PIL import Image
 
-from application.port_out.text_generator_port import (
-    TextGeneratorPort,
-)
+from application.port_out.text_generator_port import TextGeneratorPort
+from domain.value.generated_word import GeneratedWord
 from domain.value.job_info import RunningJob
 from domain.value.job_input import JobInput
 from domain.value.running_state import RunningState
-from domain.value.generated_word import GeneratedWord
 
 
-class FontGenerationApplicationMock(TextGeneratorPort):
-    __run_seconds: float  # Simulated wait time
-    __simulate_success: bool  # Simulated success flag
+class TextGeneratorStub(TextGeneratorPort):
+    __job_processing_time: float  # Simulated job processing time
+    __simulate_success: bool  # Whether to simulate a successful job or not
 
-    def __init__(self, run_seconds: float, simulate_success: bool):
+    def __init__(self, job_processing_time: float, simulate_success: bool):
         super().__init__()
-        self.__run_seconds = run_seconds
+        self.__job_processing_time = job_processing_time
         self.__simulate_success = simulate_success
 
     async def __generation(
@@ -29,7 +28,7 @@ class FontGenerationApplicationMock(TextGeneratorPort):
         on_new_word_result: Callable[[GeneratedWord], None],
     ) -> Union[bool, str]:
         # Simulate async operation
-        await asyncio.sleep(self.__run_seconds)
+        await asyncio.sleep(self.__job_processing_time)
 
         if not self.__simulate_success:
             # Simulate failure
@@ -37,12 +36,12 @@ class FontGenerationApplicationMock(TextGeneratorPort):
 
         # Create some characters
         for char in job_input.input_text:
-            mock_image = Image.new("RGBA", size=(0, 0), color=0)
+            mock_image = Image.new("RGBA", size=(0, 0), color=0).tobytes()
 
             on_new_word_result(
                 GeneratedWord(
                     word=char,
-                    image=mock_image.tobytes(),
+                    image=mock_image,
                 )
             )
 

@@ -12,7 +12,7 @@ from domain.value.running_state import RunningState
 from domain.value.generated_word import GeneratedWord
 
 
-class FontGenerationApplicationWithProgressMock(TextGeneratorPort):
+class TextGeneratorWithProgressStub(TextGeneratorPort):
     __progress_interval: float  # Simulated progress interval
 
     def __init__(self, progress_interval: float):

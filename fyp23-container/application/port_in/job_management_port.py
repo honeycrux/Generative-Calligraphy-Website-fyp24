@@ -12,29 +12,30 @@ class JobManagementPort(ABC):
     """
 
     @abstractmethod
-    def start_task(self, job_input: JobInput) -> UUID:
+    def start_job(self, job_input: JobInput) -> UUID:
         """
-        Start a task by its ID.
+        Start a job by its ID.
 
         :param job_input: The input data for the job to start.
         """
         pass
 
     @abstractmethod
-    def retrieve_task(self, task_id: UUID) -> Optional[Job]:
+    def retrieve_job(self, job_id: UUID) -> Optional[Job]:
         """
-        Retrieve a task by its ID.
+        Retrieve a job by its ID.
 
-        :param task_id: The ID of the task to retrieve.
-        :return: The job associated with the task ID.
+        :param job_id: The ID of the job to retrieve.
+        :return: The job associated with the job ID.
         """
         pass
 
     @abstractmethod
-    def interrupt_task(self, task_id: UUID) -> None:
+    def interrupt_job(self, job_id: UUID) -> None:
         """
-        Interrupt a task by its ID.
+        Interrupt a job by its ID.
+        Does not raise an error if the job does not exist.
 
-        :param task_id: The ID of the task to interrupt.
+        :param job_id: The ID of the job to interrupt.
         """
         pass

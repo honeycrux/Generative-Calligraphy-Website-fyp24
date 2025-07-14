@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from application.port_out.image_repository_port import ImageRepositoryPort
 
 
-class ImageRepositoryMock(ImageRepositoryPort):
+class ImageRepositoryStub(ImageRepositoryPort):
     __files: dict[UUID, bytes]
 
     def __init__(self):

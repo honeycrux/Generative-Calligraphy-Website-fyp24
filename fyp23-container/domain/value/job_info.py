@@ -1,11 +1,11 @@
 from abc import ABC
+from datetime import datetime
 from typing import Optional, Union
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
-from datetime import datetime
 
 from .running_state import RunningState
-
 
 """ Inheritance structure
 
@@ -25,7 +25,6 @@ JobInfo (BaseModel, ABC)
 class JobInfo(BaseModel, ABC):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    job_id: UUID
     time_start_to_queue: datetime
 
 
@@ -35,11 +34,16 @@ class WaitingJob(JobInfo):
     place_in_queue: int
 
     @staticmethod
-    def create(job_id: UUID, place_in_queue: int) -> "WaitingJob":
+    def create(place_in_queue: int) -> "WaitingJob":
         return WaitingJob(
-            job_id=job_id,
             time_start_to_queue=datetime.now(),
             place_in_queue=place_in_queue,
+        )
+
+    def move_up_queue(self) -> "WaitingJob":
+        return WaitingJob(
+            time_start_to_queue=self.time_start_to_queue,
+            place_in_queue=self.place_in_queue - 1,
         )
 
 
@@ -52,7 +56,6 @@ class RunningJob(JobInfo):
     @staticmethod
     def of(waiting_job: WaitingJob) -> "RunningJob":
         return RunningJob(
-            job_id=waiting_job.job_id,
             time_start_to_queue=waiting_job.time_start_to_queue,
             time_start_to_run=datetime.now(),
             running_state=RunningState.not_started(),
@@ -60,7 +63,6 @@ class RunningJob(JobInfo):
 
     def of_state(self, running_state: RunningState) -> "RunningJob":
         return RunningJob(
-            job_id=self.job_id,
             time_start_to_queue=self.time_start_to_queue,
             time_start_to_run=self.time_start_to_run,
             running_state=running_state,
@@ -81,7 +83,6 @@ class CompletedJob(StoppedJob):
     @staticmethod
     def of(running_job: RunningJob) -> "CompletedJob":
         return CompletedJob(
-            job_id=running_job.job_id,
             time_start_to_queue=running_job.time_start_to_queue,
             time_start_to_run=running_job.time_start_to_run,
             time_end=datetime.now(),
@@ -97,7 +98,6 @@ class FailedJob(StoppedJob):
     @staticmethod
     def of(running_job: RunningJob, error_message: str) -> "FailedJob":
         return FailedJob(
-            job_id=running_job.job_id,
             time_start_to_queue=running_job.time_start_to_queue,
             time_start_to_run=running_job.time_start_to_run,
             time_end=datetime.now(),
@@ -113,7 +113,6 @@ class CancelledJob(StoppedJob):
     @staticmethod
     def of(job: Union[WaitingJob, RunningJob]) -> "CancelledJob":
         return CancelledJob(
-            job_id=job.job_id,
             time_start_to_queue=job.time_start_to_queue,
             time_start_to_run=(
                 job.time_start_to_run if isinstance(job, RunningJob) else None

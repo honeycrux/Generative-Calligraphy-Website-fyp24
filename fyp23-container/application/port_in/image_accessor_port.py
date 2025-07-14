@@ -3,7 +3,7 @@ from uuid import UUID
 from typing import Optional
 
 
-class ImageAccessPort(ABC):
+class ImageAccessorPort(ABC):
     """
     Port for retrieving images.
     This port defines the interface for getting images by their ID.

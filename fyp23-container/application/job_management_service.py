@@ -1,19 +1,19 @@
 import asyncio
-from datetime import timedelta
 import threading
 import time
+from datetime import timedelta
 from typing import Optional
 from uuid import UUID, uuid4
 
 from application.port_in.job_management_port import JobManagementPort
-from application.port_out.text_generator_port import (
-    TextGeneratorPort,
-)
 from application.port_out.image_repository_port import ImageRepositoryPort
+from application.port_out.text_generator_port import TextGeneratorPort
 from domain.entity.job import Job
 from domain.entity.job_queue import JobQueue
 from domain.entity.job_table import JobTable
 from domain.value.font_gen_service_config import FontGenServiceConfig
+from domain.value.generated_word import GeneratedWord
+from domain.value.generated_word_location import GeneratedWordLocation
 from domain.value.job_info import (
     CancelledJob,
     CompletedJob,
@@ -24,8 +24,6 @@ from domain.value.job_info import (
 from domain.value.job_input import JobInput
 from domain.value.job_status import JobStatus
 from domain.value.running_state import RunningState
-from domain.value.generated_word import GeneratedWord
-from domain.value.generated_word_location import GeneratedWordLocation
 
 
 class JobManagementService(JobManagementPort):
@@ -40,8 +38,8 @@ class JobManagementService(JobManagementPort):
     def __init__(
         self,
         text_generator_port: TextGeneratorPort,
-        font_gen_service_config: FontGenServiceConfig,
         image_repository_port: ImageRepositoryPort,
+        font_gen_service_config: FontGenServiceConfig,
     ):
         self.__config = font_gen_service_config
         self.__text_generator_port = text_generator_port
@@ -54,24 +52,24 @@ class JobManagementService(JobManagementPort):
         self.__operate_queue_thread = self.continuously_operate_queue()
         self.__cleanup_job_table_thread = self.continuously_cleanup_job_table()
 
-    def start_task(self, job_input: JobInput):
+    def start_job(self, job_input: JobInput):
         new_job_id = uuid4()
         queue_size = self.__job_queue.size()
         new_job = Job(
             job_id=new_job_id,
             job_input=job_input,
-            job_status=JobStatus.WAITING,
-            job_info=WaitingJob.create(job_id=new_job_id, place_in_queue=queue_size),
+            job_status=JobStatus.Waiting,
+            job_info=WaitingJob.create(place_in_queue=queue_size + 1),
         )
         self.__job_table.add_job(new_job)
         self.__job_queue.add_job(new_job_id)
         return new_job_id
 
-    def retrieve_task(self, task_id: UUID) -> Optional[Job]:
-        return self.__job_table.get_job(task_id)
+    def retrieve_job(self, job_id: UUID) -> Optional[Job]:
+        return self.__job_table.get_job(job_id)
 
-    def interrupt_task(self, task_id: UUID) -> None:
-        self.__job_table.cancel_job(task_id)
+    def interrupt_job(self, job_id: UUID) -> None:
+        self.__job_table.cancel_job(job_id)
 
     def continuously_operate_queue(self) -> threading.Thread:
         def on_new_state(job: Job, state: RunningState):
@@ -81,7 +79,7 @@ class JobManagementService(JobManagementPort):
 
             # Update job info with the new state
             job.update(
-                job_status=JobStatus.RUNNING,
+                job_status=JobStatus.Running,
                 job_info=job.job_info.of_state(state),
             )
 
@@ -119,7 +117,7 @@ class JobManagementService(JobManagementPort):
 
             # Update job status and info
             job.update(
-                job_status=JobStatus.RUNNING,
+                job_status=JobStatus.Running,
                 job_info=RunningJob.of(job.job_info),
             )
 
@@ -127,8 +125,8 @@ class JobManagementService(JobManagementPort):
                 job.job_info, RunningJob
             ), "Job info should be RunningJob at this point"
 
-            # Start the font generation task
-            task_coroutine = self.__text_generator_port.generate_text(
+            # Start the font generation job
+            job_coroutine = self.__text_generator_port.generate_text(
                 job_input=job.job_input,
                 job_info=job.job_info,
                 on_new_state=lambda state: on_new_state(job, state),
@@ -138,36 +136,36 @@ class JobManagementService(JobManagementPort):
             )
 
             # Add the coroutine to the job table
-            self.__job_table.add_coroutine(job_id, task_coroutine)
+            self.__job_table.add_coroutine(job_id, job_coroutine)
 
-            # Wait for the task to complete and handle the result
+            # Wait for the job to complete and handle the result
             try:
-                result = await task_coroutine
+                result = await job_coroutine
 
                 if isinstance(result, bool):
                     if result:
-                        # Task was successful
+                        # Job was successful
                         job.update(
-                            job_status=JobStatus.COMPLETED,
+                            job_status=JobStatus.Completed,
                             job_info=CompletedJob.of(job.job_info),
                         )
                     else:
                         raise ValueError(
-                            "Task returned False, but no error message was provided."
+                            "Job returned False, but no error message was provided."
                         )
 
                 if isinstance(result, str):
-                    # Task failed with an error message
+                    # Job failed with an error message
                     job.update(
-                        job_status=JobStatus.FAILED,
+                        job_status=JobStatus.Failed,
                         job_info=FailedJob.of(job.job_info, error_message=result),
                     )
                     return
 
             except asyncio.CancelledError:
-                # Task was cancelled
+                # Job was cancelled
                 job.update(
-                    job_status=JobStatus.CANCELLED,
+                    job_status=JobStatus.Cancelled,
                     job_info=CancelledJob.of(job.job_info),
                 )
                 return
@@ -175,7 +173,7 @@ class JobManagementService(JobManagementPort):
             except Exception as e:
                 # An unexpected error occurred
                 job.update(
-                    job_status=JobStatus.FAILED,
+                    job_status=JobStatus.Failed,
                     job_info=FailedJob.of(job.job_info, error_message=str(e)),
                 )
                 return
@@ -185,7 +183,7 @@ class JobManagementService(JobManagementPort):
                 try:
                     await operate_queue()
                 except asyncio.CancelledError:
-                    # If the task is cancelled, exit the loop
+                    # If the job is cancelled, exit the loop
                     break
 
         # Continuously run the above process
@@ -205,11 +203,11 @@ class JobManagementService(JobManagementPort):
             self.__image_repository_port.delete_image(image_id=image_id)
 
         def cleanup_job_table() -> None:
-            # Clean up job table
-            self.__job_table.cleanup(on_delete_resource=on_delete_resource)
-
             # Wait for the configured max retain time before the next cleanup
             time.sleep(self.__config.max_retain_time)
+
+            # Clean up job table
+            self.__job_table.cleanup(on_delete_resource=on_delete_resource)
 
         def always_cleanup_job_table() -> None:
             while True:

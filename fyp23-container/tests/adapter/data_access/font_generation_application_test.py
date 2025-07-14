@@ -35,7 +35,6 @@ async def generate_text(
 ):
     job_input = JobInput(input_text=input_text)
     job_info = RunningJob(
-        job_id=UUID("12345678-1234-5678-1234-567812345678"),
         time_start_to_queue=datetime.now(),
         time_start_to_run=datetime.now(),
         running_state=RunningState.not_started(),

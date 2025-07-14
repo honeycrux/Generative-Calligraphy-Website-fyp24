@@ -1,9 +1,19 @@
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
 
+from adapter.presentation.interrupt_job_router import interrupt_job_router
+from adapter.presentation.retrieve_job_router import retrieve_job_router
+from adapter.presentation.start_job_router import start_job_router
+
 app = FastAPI()
 
+
 ### Routes ###
+
+
+app.include_router(start_job_router)
+app.include_router(interrupt_job_router)
+app.include_router(retrieve_job_router)
 
 
 ### Docs ###
