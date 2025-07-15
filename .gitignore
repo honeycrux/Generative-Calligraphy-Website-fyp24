@@ -16,3 +16,7 @@ __pycache__/
 
 # VSCode
 .vscode/
+
+# Traefik binary
+traefik
+traefik.exe

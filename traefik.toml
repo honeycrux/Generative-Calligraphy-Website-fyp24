@@ -1,0 +1,9 @@
+# https://fastapi.tiangolo.com/advanced/behind-a-proxy/#testing-locally-with-traefik
+
+[entryPoints]
+  [entryPoints.http]
+    address = ":6700"
+
+[providers]
+  [providers.file]
+    filename = "routes-fyp23.toml"
