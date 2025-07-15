@@ -14,6 +14,8 @@ from app import app
 ### Constants ###
 
 
+TEST_OUTPUT_FOLDER = "test_outputs/app_integration_test"
+
 # my tests usually finish in under 45s; adjust if necessary
 CPU_GENERATION_TIMEOUT = 60  # seconds
 
@@ -42,8 +44,9 @@ def setup_default_dependency_overrides():
 
 @pytest.fixture(autouse=True)
 def setup_output_folder():
-    os.makedirs("./test_outputs", exist_ok=True)
-    os.chmod("./test_outputs", 0o777)
+    os.makedirs(TEST_OUTPUT_FOLDER, exist_ok=True)
+    os.chmod("test_outputs/", 0o777)
+    os.chmod(TEST_OUTPUT_FOLDER, 0o777)
 
 
 @pytest.fixture
@@ -73,15 +76,18 @@ def remove_existing_file(image_save_path):
         os.remove(image_save_path)
 
 
+def save_image(image: Image.Image, image_save_path: str):
+    image.save(image_save_path)
+    os.chmod(image_save_path, 0o777)
+
+
 ### Tests ###
 
 
 @pytest.mark.slow
 @pytest.mark.timeout(active_generation_timeout)  # seconds
 def test_text_generation_process(test_client):
-    image_save_path = (
-        "./test_outputs/app_integration_test__test_text_generation_process.png"
-    )
+    image_save_path = f"{TEST_OUTPUT_FOLDER}/test_text_generation_process.png"
 
     remove_existing_file(image_save_path)
 

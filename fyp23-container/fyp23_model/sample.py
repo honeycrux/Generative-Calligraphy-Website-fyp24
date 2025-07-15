@@ -243,12 +243,12 @@ def run_sample(
 
     # set up save directory
     if img_save_path is not None:
-        if os.path.exists(img_save_path):
-            # remove the directory if it exists
-            shutil.rmtree(img_save_path)
+        # if os.path.exists(img_save_path):
+        #     # remove the directory if it exists
+        #     shutil.rmtree(img_save_path)
 
         # create the directory
-        os.mkdir(img_save_path)
+        os.makedirs(img_save_path, exist_ok=True)
         os.chmod(img_save_path, 0o777)
 
     # set up dictionary for trained words
@@ -293,7 +293,6 @@ def run_sample(
     # for each batch
     # while len(all_images) * cfg.batch_size < cfg.num_samples:
     ch_idx = 0
-    total_images = len(all_images) * cfg.batch_size
     for batch_num, (char, content_image) in enumerate(
         zip(content_text, content_images)
     ):
@@ -393,7 +392,8 @@ def run_sample(
                 img.save(os.path.join(img_save_path, img_name))
                 os.chmod(os.path.join(img_save_path, img_name), 0o777)
 
-        logger.log(f"created {total_images} samples")
+        total_samples_so_far = len(all_images) * cfg.batch_size
+        logger.log(f"created {total_samples_so_far} samples so far")
 
     if dist.get_rank() == 0 and img_save_path is not None:
         if len(all_images) > 0 and len(all_labels) > 0:
