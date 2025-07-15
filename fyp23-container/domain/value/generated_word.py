@@ -1,6 +1,10 @@
+import io
 from typing import Optional
 
+from PIL import Image
 from pydantic import BaseModel, ConfigDict
+
+IMAGE_FORMAT = "PNG"
 
 
 class GeneratedWord(BaseModel):
@@ -17,3 +21,15 @@ class GeneratedWord(BaseModel):
         success = image is not None
 
         super().__init__(word=word, image=image, success=success)
+
+    @staticmethod
+    def from_image(word: str, image: Optional[Image.Image]) -> "GeneratedWord":
+        if image is not None:
+            image_stream = io.BytesIO()
+            image.save(image_stream, format=IMAGE_FORMAT)
+            image_stream.seek(0)
+            image_bytes = image_stream.getvalue()
+        else:
+            image_bytes = None
+
+        return GeneratedWord(word=word, image=image_bytes)

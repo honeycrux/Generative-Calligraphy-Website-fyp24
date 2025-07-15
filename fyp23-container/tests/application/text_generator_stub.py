@@ -36,10 +36,10 @@ class TextGeneratorStub(TextGeneratorPort):
 
         # Create some characters
         for char in job_input.input_text:
-            mock_image = Image.new("RGBA", size=(0, 0), color=0).tobytes()
+            mock_image = Image.new("RGB", (100, 100), color=0)
 
             on_new_word_result(
-                GeneratedWord(
+                GeneratedWord.from_image(
                     word=char,
                     image=mock_image,
                 )

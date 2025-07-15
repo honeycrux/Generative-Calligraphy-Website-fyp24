@@ -26,7 +26,12 @@ from tests.adapter.presentation.test_dependencies import (
 
 
 def setup_default_dependency_overrides():
-    """Set up dependency overrides for testing."""
+    """Set up dependency overrides for testing.
+    If dependencies are overridden in other tests using the FastAPI object,
+    this function should be called to reset them.
+    """
+
+    app.dependency_overrides = {}
 
     app.dependency_overrides[get_text_generator_port] = override_text_generator_port
     app.dependency_overrides[get_image_repository_port] = override_image_repository_port
@@ -256,9 +261,6 @@ def test_retrieve_failed_job(test_client):
     assert type(response_body["job_info"]["error_message"]) is str
 
     assert_job_result_is_valid(response_body["job_result"])
-
-    # Reset the overrides
-    app.dependency_overrides = {}
 
 
 def test_retrieve_cancelled_job(test_client):

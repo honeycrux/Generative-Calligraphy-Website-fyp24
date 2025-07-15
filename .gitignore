@@ -7,6 +7,7 @@ trained_models_test/
 
 # Auxiliary files
 outputs/
+test_outputs/
 
 # Python
 __pycache__/

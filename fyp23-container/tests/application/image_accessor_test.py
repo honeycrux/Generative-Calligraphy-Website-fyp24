@@ -14,7 +14,7 @@ from tests.application.image_repository_stub import ImageRepositoryStub
 @pytest.fixture
 def mock_image_1() -> tuple[UUID, bytes]:
     image_id = UUID("12345678-1234-5678-1234-567812345678")
-    mock_image = Image.new("RGBA", size=(0, 0), color=0).tobytes()
+    mock_image = Image.new("RGB", (100, 100), color=0).tobytes()
     return image_id, mock_image
 
 

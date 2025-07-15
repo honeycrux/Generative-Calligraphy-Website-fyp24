@@ -28,3 +28,4 @@ dependencies:
   - fastapi[standard]
   - pytest
   - pytest-asyncio
+  - pytest-timeout

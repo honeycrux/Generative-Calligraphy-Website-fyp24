@@ -104,7 +104,10 @@ class JobManagementService(JobManagementPort):
                     await asyncio.sleep(self.__config.operate_queue_interval)
                 return
 
-            job_id = self.__job_queue.dequeue_job()
+            job_id = self.__job_queue.dequeue_job(
+                shift_queue=lambda: self.__job_table.shift_job_queue()
+            )
+
             job = self.__job_table.get_job(job_id)
 
             if job is None:

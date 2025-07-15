@@ -34,14 +34,14 @@ class TextGeneratorWithProgressStub(TextGeneratorPort):
             # Simulate async operation
             await asyncio.sleep(self.__progress_interval)
 
-            mock_image = Image.new("RGBA", size=(0, 0), color=0)
+            mock_image = Image.new("RGB", (100, 100), color=0)
 
             on_new_state(RunningState.generating(current=idx + 1, total=total_chars))
 
             on_new_word_result(
-                GeneratedWord(
+                GeneratedWord.from_image(
                     word=char,
-                    image=mock_image.tobytes(),
+                    image=mock_image,
                 )
             )
 

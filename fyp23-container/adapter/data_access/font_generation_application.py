@@ -32,12 +32,10 @@ class FontGenerationApplication(TextGeneratorPort):
                 )
             )
             on_new_word_result(
-                GeneratedWord(
+                GeneratedWord.from_image(
                     word=sample_result.word,
                     image=(
-                        sample_result.image.tobytes()
-                        if sample_result.image is not None
-                        else None
+                        sample_result.image if sample_result.image is not None else None
                     ),
                 )
             )

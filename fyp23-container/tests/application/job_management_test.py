@@ -11,7 +11,7 @@ from application.port_out.image_repository_port import ImageRepositoryPort
 from application.port_out.text_generator_port import TextGeneratorPort
 from domain.entity.job import Job
 from domain.value.font_gen_service_config import FontGenServiceConfig
-from domain.value.job_info import RunningJob
+from domain.value.job_info import FailedJob, RunningJob, WaitingJob
 from domain.value.job_input import JobInput
 from domain.value.job_status import JobStatus
 from tests.application.image_repository_stub import ImageRepositoryStub
@@ -140,6 +140,10 @@ def add_and_complete_job(job_management_port) -> tuple[UUID, Job]:
     )  # Wait for the job to be processed
 
     job = retrieve_existing_job(job_management_port, job_id)
+
+    if isinstance(job.job_info, FailedJob):
+        raise Exception(job.job_info.error_message)
+
     assert (
         job.job_status == JobStatus.Completed
     ), "Job status should be completed after processing"
@@ -173,6 +177,8 @@ def test_added_job_is_put_to_waiting(job_management_port):
     assert (
         job.job_status == JobStatus.Waiting
     ), "Job status should be waiting after being added"
+    assert isinstance(job.job_info, WaitingJob), "Job info should be of type WaitingJob"
+    assert job.job_info.place_in_queue == 1, "Job should be first in the queue"
 
 
 def test_added_job_can_run_with_resources_available(job_management_port):
@@ -200,9 +206,7 @@ def test_running_state_updates_correctly(job_management_port_with_progress):
     assert (
         job.job_status == JobStatus.Running
     ), "Job status should be running after starting"
-    assert isinstance(
-        job.job_info, RunningJob
-    ), "Job info should be of type RunningState"
+    assert isinstance(job.job_info, RunningJob), "Job info should be of type RunningJob"
     assert (
         job.job_info.running_state.name == "generating"
     ), "Running state should be generating after starting the job"
@@ -214,9 +218,7 @@ def test_running_state_updates_correctly(job_management_port_with_progress):
     time.sleep(JOB_PROCESSING_TIME)
 
     job = retrieve_existing_job(job_management_port_with_progress, job_id)
-    assert isinstance(
-        job.job_info, RunningJob
-    ), "Job info should be of type RunningState"
+    assert isinstance(job.job_info, RunningJob), "Job info should be of type RunningJob"
     assert (
         job.job_info.running_state.message == "Generating 1/3 characters"
     ), "Running state message should indicate the current progress (1/3 characters)"
@@ -225,9 +227,7 @@ def test_running_state_updates_correctly(job_management_port_with_progress):
     time.sleep(JOB_PROCESSING_TIME)
 
     job = retrieve_existing_job(job_management_port_with_progress, job_id)
-    assert isinstance(
-        job.job_info, RunningJob
-    ), "Job info should be of type RunningState"
+    assert isinstance(job.job_info, RunningJob), "Job info should be of type RunningJob"
     assert (
         job.job_info.running_state.message == "Generating 2/3 characters"
     ), "Running state message should indicate the current progress (2/3 characters)"
@@ -368,14 +368,50 @@ def test_process_job_in_input_order(job_management_port):
     job_2 = retrieve_existing_job(job_management_port, job_id_2)
     assert (
         job_2.job_status == JobStatus.Running
-    ), "Second job should be in running status after first job completion"
+    ), "Second job should be running after first job completion"
 
     # Wait for the second job to complete
-    time.sleep(JOB_PROCESSING_TIME)
+    time.sleep(JOB_PROCESSING_TIME + TINY_BUFFER)
     job_2 = retrieve_existing_job(job_management_port, job_id_2)
     assert (
         job_2.job_status == JobStatus.Completed
     ), "Second job status should be completed after processing"
+
+
+def test_job_queue_shifts_correctly(job_management_port):
+    job_id_1 = add_job(job_management_port)
+    job_id_2 = add_job(job_management_port)
+
+    # The second job should be second in the queue
+    job_2 = retrieve_existing_job(job_management_port, job_id_2)
+    assert (
+        job_2.job_status == JobStatus.Waiting
+    ), "Second job should be waiting after being added"
+    assert isinstance(
+        job_2.job_info, WaitingJob
+    ), "Job info should be of type WaitingJob"
+    assert (
+        job_2.job_info.place_in_queue == 2
+    ), "Second job should be second in the queue"
+
+    # Wait for the first job to be running
+    time.sleep(JOB_PROCESSING_TIME / 2)
+
+    # The first job should be running
+    job_1 = retrieve_existing_job(job_management_port, job_id_1)
+    assert (
+        job_1.job_status == JobStatus.Running
+    ), "First job should be running after being started"
+
+    # The second job should be first in the queue
+    job_2 = retrieve_existing_job(job_management_port, job_id_2)
+    assert (
+        job_2.job_status == JobStatus.Waiting
+    ), "Second job should be waiting after first job processing"
+    assert isinstance(
+        job_2.job_info, WaitingJob
+    ), "Job info should be of type WaitingJob"
+    assert job_2.job_info.place_in_queue == 1, "Second job should be first in the queue"
 
 
 def test_can_retrieve_job_and_resources_at_or_before_retain_time(

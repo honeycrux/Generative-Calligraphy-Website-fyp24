@@ -39,10 +39,7 @@ def test_client():
 def store_mock_png():
     image = Image.new("RGB", (100, 100), color=0)
 
-    image_stream = io.BytesIO()
-    image.save(image_stream, format="PNG")
-    image_stream.seek(0)
-    mock_image_bytes = image_stream.getvalue()
+    mock_image_bytes = convert_image_to_bytes(image=image, format="PNG")
 
     mock_image_id = override_image_repository_port().save_image(image=mock_image_bytes)
     return mock_image_id, mock_image_bytes
@@ -52,13 +49,21 @@ def store_mock_png():
 def store_mock_jpeg():
     image = Image.new("RGB", (100, 100), color=0)
 
-    image_stream = io.BytesIO()
-    image.save(image_stream, format="JPEG")
-    image_stream.seek(0)
-    mock_image_bytes = image_stream.getvalue()
+    mock_image_bytes = convert_image_to_bytes(image=image, format="JPEG")
 
     mock_image_id = override_image_repository_port().save_image(image=mock_image_bytes)
     return mock_image_id, mock_image_bytes
+
+
+### Helper Functions ###
+
+
+def convert_image_to_bytes(image, format):
+    image_stream = io.BytesIO()
+    image.save(image_stream, format=format)
+    image_stream.seek(0)
+    mock_image_bytes = image_stream.getvalue()
+    return mock_image_bytes
 
 
 ### Tests ###

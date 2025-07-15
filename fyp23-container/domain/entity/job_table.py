@@ -55,12 +55,11 @@ class JobTable:
             job_info=CancelledJob.of(job.job_info),
         )
 
-    def shift_job_queue(self) -> Optional[Job]:
+    def shift_job_queue(self) -> None:
         for job in self.__jobs.values():
             if isinstance(job.job_info, WaitingJob):
                 new_job_info = job.job_info.move_up_queue()
                 job.update(job_status=JobStatus.Waiting, job_info=new_job_info)
-                return job
 
     def add_coroutine(self, job_id: UUID, coroutine: Task) -> None:
         if job_id not in self.__jobs:

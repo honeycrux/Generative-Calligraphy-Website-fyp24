@@ -1,4 +1,5 @@
 from queue import Queue
+from typing import Callable
 from uuid import UUID
 
 from domain.exception.retrieval_from_empty_job_queue import RetrievalFromEmptyJobQueue
@@ -16,9 +17,10 @@ class JobQueue:
             return
         self.__job_queue.put(job_id)
 
-    def dequeue_job(self) -> UUID:
+    def dequeue_job(self, shift_queue: Callable[[], None]) -> UUID:
         if self.__job_queue.empty():
             raise RetrievalFromEmptyJobQueue("Dequeue a job from an empty queue.")
+        shift_queue()
         return self.__job_queue.get()
 
     def is_empty(self) -> bool:
