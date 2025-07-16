@@ -15,7 +15,7 @@ from domain.value.font_gen_service_config import FontGenServiceConfig
 ### Constants ###
 
 
-OPERATE_QUEUE_INTERVAL = 3.0  # seconds
+OPERATE_QUEUE_INTERVAL = 2.0  # seconds
 MAX_RETAIN_TIME = 60.0  # seconds
 
 

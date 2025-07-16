@@ -14,15 +14,14 @@ The approach of a single API application requires both models to be on the same 
 
 Use a separate container for each font model, running its own API application with a job queue.
 
-Use a gateway API application to process incoming requests from the frontend application and send requests to font model containers.
-
-The use of tools to run multi-container applications such as Docker Compose should be considered in the future.
+Use a proxy server or a gateway API application to forward requests from the frontend application to the font model containers.
 
 ## Consequences
 
 Effects
 
 - Increase in scalability of models, reducing integration difficulties/impossibilities
+- Improves maintainability by isolating concerns
 
 Trade-offs
 

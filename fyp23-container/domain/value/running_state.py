@@ -11,15 +11,11 @@ class RunningState(BaseModel):
 
     @staticmethod
     def not_started() -> "RunningState":
-        return RunningState(
-            name="not started", message="Generation has not started yet"
-        )
+        return RunningState(name="not started", message="Processing your request")
 
     @staticmethod
     def generating(current: int, total: int) -> "RunningState":
-        return RunningState(
-            name="generating", message=f"Generating {current}/{total} characters"
-        )
+        return RunningState(name="generating", message=f"Generating: {current}/{total}")
 
     @staticmethod
     def cleaning_up() -> "RunningState":

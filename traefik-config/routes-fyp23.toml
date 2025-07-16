@@ -8,15 +8,15 @@
 
   [http.routers]
 
-    [http.routers.app-http]
+    [http.routers.fyp23-container-http]
       entryPoints = ["http"]
-      service = "app"
+      service = "fyp23-container"
       rule = "PathPrefix(`/fyp23`)"
       middlewares = ["api-stripprefix"]
 
   [http.services]
 
-    [http.services.app]
-      [http.services.app.loadBalancer]
-        [[http.services.app.loadBalancer.servers]]
+    [http.services.fyp23-container]
+      [http.services.fyp23-container.loadBalancer]
+        [[http.services.fyp23-container.loadBalancer.servers]]
           url = "http://127.0.0.1:6723"

@@ -2,66 +2,53 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Font Transform Website</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', path='/styles.css') }}">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generative Calligraphy Website</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', path='/styles.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', path='/playground.css') }}" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
-
 </head>
 
-
 <body>
-
     <div class="main-container">
         <div class="section" id="top-section">
             <div class="title-container">
-                <h1>New Font Generation from Classic Calligraphy</h1>
-                <span>An AI generator for Lanting Xu computer font, a piece of well-known Chinese classic calligraphy
-                    work from Wang Xizhi.</span>
+                <h1 class="website-name">Generative Calligraphy Website</h1>
+                <div class="brief-desc">This application generates texts in the style of Lantingji Xu, a famous calligraphic work by the Chinese
+                calligrapher Wang Xizhi.</div>
             </div>
 
-            <div class="input-output-container">
-
-                <!--div class="encoding-rule">
-                    <img src="./static/encoding_rule.jpg" alt="Stroke encoding rule">
-                </div-->
-
+            <div class="playground-container">
                 <div class="input-container">
                     <div class="input-group">
-                        <textarea class="char-input" rows="5" cols="33" pattern="^.{1}$" placeholder="Input Chinese characters" required></textarea>
-                        <!-- <input required="" type="text" name="text" autocomplete="off" class="char-input"
-                            pattern="^.{1}$">
-                        <label class="user-label">Input Chinese characters: </label> -->
+                        <textarea class="char-input" rows="5" cols="33" pattern="^.{1}$"
+                            placeholder="Input Chinese characters" required></textarea>
                     </div>
-                    
-                    <!--div class="input-guide">
-                        Input 32 stroke numbers:
-                    </div>
-                    <input type="text" class="stroke-input" placeholder="input strokes" value="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"-->
-                    <a class="submitBtn" href="#" onclick="">
+
+                    <button class="submit-btn" href="#" onclick="">
                         <span class="top-key"></span>
                         <span class="text">Generate</span>
+                        <span class="interrupt-symbol"></span>
                         <span class="bottom-key-1"></span>
                         <span class="bottom-key-2"></span>
-                    </a>
+                    </button>
                 </div>
-                <div class="output-container" >
+                <div class="output-container">
                     <div id="output-sample">
-                        <img src="./static/請輸入中文字.png" alt="[no image available]" id="output-img" />
-                        <!-- <img src="./static/wanxizhi_stamp.png" alt="[no image available]" id="stamp" /> -->
-
+                        <img src="./static/chinese-input-prompt.png" alt="[no image available]" id="output-img" />
+                        <!-- <img src="./static/wanxizhi-stamp.png" alt="[no image available]" id="stamp" /> -->
                     </div>
-                    <div id="output-result-container" style="display: none;">
-                        <div id="output-result" >
-                            <div id="pictures"></div> 
+                    <div id="output-result-container" style="display: none">
+                        <div id="output-result">
+                            <div id="pictures"></div>
                         </div>
-                        <button class="download-btn" onclick="handleDownload()"> </button>
+                        <button id="download-btn" onclick="handleDownload()"></button>
                     </div>
-                    
-                    <div id="output-loader" style="display: none;">
+
+                    <div id="output-loader" style="display: none">
                         <div class="loader">
-                            <p id="status"> Loading </p>
+                            <p id="status">Loading</p>
                             <div class="loading">
                                 <div class="load"></div>
                                 <div class="load"></div>
@@ -76,47 +63,53 @@
 
         <div class="section" id="bottom-section">
             <div class="description">
-                <h1>--- What this is about ---</h1>
-                <!-- <div class="descript-section">
-                    <img src="./static/lanTingXu.jpeg" alt="[no image available]" class="descript-img" />
-                    <p>
-                        Being well-known around the globe, many Chinese classic calligraphy works are appreciated by
-                        people. However, with diverse writing styles of calligraphers, the style of every calligraphy
-                        work
-                        varies. Moreover, there are only a limited number of characters in each artwork. It is a
-                        challenging
-                        task to extend their font library. One of the most famous Chinese classic calligraphy is 
-                        Lanting Xu written by Wang Xizhi.
-                    </p>
-                </div> -->
+                <div class="description-title">
+                    <div>
+                        <div class="description-decor-bar"></div>
+                        <h1>About the project</h1>
+                    </div>
+                </div>
                 <div class="descript-section">
+                    <img src="./static/lantingjixu.jpeg" alt="[no image available]" class="descript-img" />
                     <p>
-                        A diffusion model is trained to tackle the task, followed by extra fine-tuning steps. An 
-                        image of the skeleton of a Chinese character concatenated with Gaussian noise is passed 
-                        to a U-Net for model training in each loop, together with its style component encoded by 
-                        a pre-trained style encoder.
+                        In Chinese calligraphy, the art of writing Chinese characters with a brush, there are many
+                        classic works that have been passed down through generations. These works are not only
+                        aesthetically pleasing but also hold significant cultural and historical value. They often
+                        showcase the unique styles and techniques of the calligraphers, reflecting their personal
+                        artistry and the cultural context of their time. The diverse nature of these work makes it
+                        challenging to generate new fonts that can capture the essence of these classic calligraphy
+                        works.
                     </p>
-                    <img src="./static/summer_model.png" alt="[no image available]" class="descript-img" />
                 </div>
                 <div class="descript-section">
                     <p>
-                        The style encoder is taken from DG-Font, which encodes the style of the training dataset and characters
-                        in Lanting Xu.
+                        A diffusion model is trained to tackle the task, followed by extra fine-tuning steps. An image
+                        of the skeleton of a Chinese character concatenated with Gaussian noise is passed to a U-Net for
+                        model training in each loop, together with its style component encoded by a pre-trained style
+                        encoder.
                     </p>
-                    <img src="./static/style-encoder-update.png" alt="[no image available]" class="descript-img" />
+                    <img src="./static/summer-model.png" alt="[no image available]" class="descript-img" />
+                </div>
+                <div class="descript-section">
+                    <p>The style encoder is taken from DG-Font, which encodes the style of the training dataset and
+                        characters in Lanting Xu.</p>
+                    <img src="./static/style-encoder.png" alt="[no image available]" class="descript-img" />
                 </div>
             </div>
-            <footer>
-                <p id="credit1">2024 @ CUHK Summer Research Project</p>
-                <p id="credit2">Link to Github: <a
-                        href="https://github.com/lylee0/New-Font-Generation-from-Classic-Calligraphy.git">https://github.com/lylee0/New-Font-Generation-from-Classic-Calligraphy.git</a>
-                </p>
-            </footer>
         </div>
+        <footer>
+            <p id="credit1">2024-2025 @ CUHK CSE</p>
+            <p id="credit2">
+                Github:
+                <a href="https://github.com/lylee0/New-Font-Generation-from-Classic-Calligraphy.git" target="_blank">
+                    https://github.com/lylee0/New-Font-Generation-from-Classic-Calligraphy.git
+                </a>
+            </p>
+        </footer>
     </div>
 
     <script src="{{ url_for('static', path='/script.js') }}"></script>
-
+    <script src="{{ url_for('static', path='/image-download.js') }}"></script>
 </body>
 
 </html>

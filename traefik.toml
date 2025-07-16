@@ -2,8 +2,12 @@
 
 [entryPoints]
   [entryPoints.http]
-    address = ":6700"
+    address = ":6701"
 
 [providers]
   [providers.file]
-    filename = "routes-fyp23.toml"
+    directory = "./traefik-config/"
+    watch = true
+
+[api]
+  insecure = true

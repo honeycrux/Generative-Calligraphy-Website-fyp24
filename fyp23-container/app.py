@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 
 from adapter.presentation.get_image_router import get_image_router
@@ -7,6 +8,17 @@ from adapter.presentation.retrieve_job_router import retrieve_job_router
 from adapter.presentation.start_job_router import start_job_router
 
 app = FastAPI()
+
+
+### CORS Configuration ###
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,  # Allow credentials
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 ### Routes ###
