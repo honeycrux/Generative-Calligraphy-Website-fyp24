@@ -25,7 +25,7 @@
     width: 100%;
 }
 
-.char-input {
+#char-input {
     min-width: 100%;
     max-width: 100%;
     height: 30vh;
@@ -50,30 +50,72 @@
     transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.char-input:focus,
-char-input:valid {
+#char-input:focus {
     outline: none;
     border: 3px solid #C1121F;
 }
 
-.char-input:focus~label,
-char-input:valid~label {
-    transform: translateY(-50%) scale(0.8);
-    background-color: white;
-    padding: 0 .2em;
-    color: #C1121F;
+#char-input:focus:valid {
+    border: 3px solid #18c112;
 }
 
-/********** Generate button styles ***********/
+/********** Action group styles ***********/
 
-.submit-btn {
+.action-group {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 1vw;
+}
+
+#model-btn {
     background-color: transparent;
     border: 2px solid #000;
     border-radius: 30px;
     box-sizing: border-box;
     cursor: pointer;
-    font-weight: 700;
+    user-select: none;
+    height: 8vh;
+    color: black;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 14vw;
+    max-width: fit-content;
+    padding: 1em;
+    position: relative;
+    box-shadow: 0.1em 0.1em;
+}
+
+#model-btn .top-text {
+    font-size: 1.5vh;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+#model-btn .model-name {
+    font-size: 2.5vh;
     letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+#model-btn:hover {
+  transform: translate(-0, -0.05em);
+  box-shadow: 0.15em 0.15em;
+}
+
+#model-btn:active {
+  transform: translate(0, 0.05em);
+  box-shadow: 0.05em 0.05em;
+}
+
+#submit-btn {
+    background-color: transparent;
+    border: 2px solid #000;
+    border-radius: 30px;
+    box-sizing: border-box;
+    cursor: pointer;
     margin: 0;
     padding: 1.25em 2em;
     position: relative;
@@ -87,10 +129,10 @@ char-input:valid~label {
     align-items: center;
     color: black;
     /* Width needed for the generating animation to occur */
-    width: 40vw;
+    width: 25vw;
 }
 
-.submit-btn::before {
+#submit-btn::before {
     content: " ";
     width: 2.5rem;
     height: 2px;
@@ -103,8 +145,10 @@ char-input:valid~label {
     transition: background 0.3s linear, width 0.3s linear;
 }
 
-.submit-btn .text {
+#submit-btn .text {
     font-size: 3vh;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     padding-left: 2.5rem;
     display: block;
     text-align: left;
@@ -113,11 +157,11 @@ char-input:valid~label {
     text-decoration: none;
 }
 
-.submit-btn .interrupt-symbol {
+#submit-btn .interrupt-symbol {
     display: none;
 }
 
-.submit-btn .top-key {
+#submit-btn .top-key {
     height: 2px;
     width: 4rem;
     top: -2px;
@@ -127,7 +171,7 @@ char-input:valid~label {
     transition: width 0.5s ease-out, left 0.3s ease-out;
 }
 
-.submit-btn .bottom-key-1 {
+#submit-btn .bottom-key-1 {
     height: 2px;
     width: 2rem;
     right: 4rem;
@@ -137,7 +181,7 @@ char-input:valid~label {
     transition: width 0.5s ease-out, right 0.3s ease-out;
 }
 
-.submit-btn .bottom-key-2 {
+#submit-btn .bottom-key-2 {
     height: 2px;
     width: 0.5rem;
     right: 2rem;
@@ -147,32 +191,32 @@ char-input:valid~label {
     transition: width 0.5s ease-out, right 0.3s ease-out;
 }
 
-.submit-btn:hover {
+#submit-btn:hover {
     color: white;
     background: black;
 }
 
-.submit-btn:hover::before {
+#submit-btn:hover::before {
     width: 0.9375rem;
     background: white;
 }
 
-.submit-btn:hover .text {
-    padding-left: 1.5em;
+#submit-btn:hover .text {
+    padding-left: 1.5rem;
 }
 
-.submit-btn:hover .top-key {
+#submit-btn:hover .top-key {
     left: -2px;
     width: 0px;
 }
 
-.submit-btn:hover .bottom-key-1,
-.submit-btn:hover .bottom-key-2 {
+#submit-btn:hover .bottom-key-1,
+#submit-btn:hover .bottom-key-2 {
     right: 0;
     width: 0;
 }
 
-.submit-btn.submit-btn-generating {
+#submit-btn.submit-btn-generating {
     background: black;
     color: white;
     width: 8vh;
@@ -187,20 +231,20 @@ char-input:valid~label {
     animation: rotation 4s linear infinite;
 }
 
-.submit-btn-generating .text {
+#submit-btn.submit-btn-generating .text {
     display: none;
 }
 
-.submit-btn-generating .interrupt-symbol {
+#submit-btn.submit-btn-generating .interrupt-symbol {
     display: block;
     background: white;
     padding: .8rem;
 }
 
-.submit-btn-generating:before,
-.submit-btn-generating .top-key,
-.submit-btn-generating .bottom-key-1,
-.submit-btn-generating .bottom-key-2 {
+#submit-btn.submit-btn-generating:before,
+#submit-btn.submit-btn-generating .top-key,
+#submit-btn.submit-btn-generating .bottom-key-1,
+#submit-btn.submit-btn-generating .bottom-key-2 {
     display: none;
 }
 
@@ -283,6 +327,7 @@ char-input:valid~label {
     transition: all 0.3s ease-in-out;
     font-weight: 600;
     font-size: 1.5rem;
+    cursor: pointer;
 }
 
 #download-btn.download-btn-with-timer {
@@ -362,7 +407,22 @@ char-input:valid~label {
 
 /********** Mobile layout styles ***********/
 
-@media (max-width: 600px) {
+@media (max-width: 1024px) {
+    #submit-btn::before {
+        width: 1.5rem;
+    }
+
+    #submit-btn .text {
+        font-size: 2.5vh;
+        padding-left: 1.5rem;
+    }
+
+    #submit-btn:hover .text {
+        padding-left: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
     .playground-container {
         flex-direction: column;
         align-items: center;
@@ -374,7 +434,7 @@ char-input:valid~label {
         width: 100%;
     }
 
-    .char-input {
+    #char-input {
         padding: 0.6rem;
         min-height: 15vh;
         height: 15vh;
@@ -385,11 +445,28 @@ char-input:valid~label {
         font-size: 1em;
     }
 
-    .submit-btn {
+    .action-group {
         width: 100%;
+        gap: 0.6rem;
     }
 
-    .submit-btn .text {
+    #model-btn {
+        width: 6rem;
+    }
+
+    #model-btn .top-text {
+        font-size: .65rem;
+    }
+
+    #model-btn .model-name {
+        font-size: .9rem;
+    }
+
+    #submit-btn {
+        width: 13rem;
+    }
+
+    #submit-btn .text {
         font-size: .85rem;
     }
 

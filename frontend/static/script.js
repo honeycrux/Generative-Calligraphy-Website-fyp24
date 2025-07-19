@@ -1,3 +1,19 @@
+const CalligraphyModel = {
+    FYP23: "fyp23",
+    FYP24: "fyp24",
+};
+
+const calligraphyModelOptions = [CalligraphyModel.FYP23, CalligraphyModel.FYP24];
+
+const calligraphyModelDetails = {
+    [CalligraphyModel.FYP23]: {
+        displayedName: "FYP23",
+    },
+    [CalligraphyModel.FYP24]: {
+        displayedName: "FYP24",
+    },
+};
+
 const JobStatus = {
     Waiting: "waiting",
     Running: "running",
@@ -7,18 +23,47 @@ const JobStatus = {
 };
 
 (function onLoad() {
-    const submitBtn = document.querySelector(".submit-btn");
+    const submitBtn = document.getElementById("submit-btn");
     submitBtn.addEventListener("click", handleSubmit);
+
+    const modelBtn = document.getElementById("model-btn");
+    modelBtn.addEventListener("click", handleModelSelect);
+
+    updateModelButton(calligraphyModelOptions[0]);
 })();
 
-function constructUrl(endpoint = "") {
+function handleModelSelect() {
+    const modelBtn = document.getElementById("model-btn");
+    const currentModel = modelBtn.getAttribute("data-selected-model");
+
+    const numberOfModels = calligraphyModelOptions.length;
+    let nextModelIndex = (calligraphyModelOptions.indexOf(currentModel) + 1) % numberOfModels;
+    let nextModel = calligraphyModelOptions[nextModelIndex];
+    updateModelButton(nextModel);
+}
+
+function updateModelButton(model) {
+    const modelBtn = document.getElementById("model-btn");
+
+    modelBtn.setAttribute("data-selected-model", model);
+
+    const modelNameSpan = modelBtn.querySelector(".model-name");
+    if (calligraphyModelDetails[model]) {
+        modelNameSpan.innerText = calligraphyModelDetails[model].displayedName;
+    } else {
+        console.error(`Model details for ${model} not found`);
+        modelNameSpan.innerText = "Unknown Model";
+    }
+}
+
+function constructUrl(model, endpoint = "") {
     if (!endpoint.startsWith("/")) {
         endpoint = "/" + endpoint;
     }
 
     const host = "127.0.0.1"; // Change this to your server's host if needed
     const port = 6701;
-    const url = `http://${host}:${port}/fyp23${endpoint}`;
+    const url = `http://${host}:${port}/${model}${endpoint}`;
 
     return url;
 }
@@ -33,8 +78,15 @@ function displayStatus(status) {
 }
 
 function enableSubmitButton() {
-    const submitBtn = document.querySelector(".submit-btn");
+    const submitBtn = document.getElementById("submit-btn");
     submitBtn.disabled = false;
+}
+
+function getSelectedModel() {
+    const modelBtn = document.getElementById("model-btn");
+    const model = modelBtn.getAttribute("data-selected-model");
+
+    return model;
 }
 
 async function handleSubmit(event) {
@@ -45,7 +97,7 @@ async function handleSubmit(event) {
         Interruption: "interruption",
     };
 
-    const submitBtn = document.querySelector(".submit-btn");
+    const submitBtn = document.getElementById("submit-btn");
     const mode = submitBtn.classList.contains("submit-btn-generating") ? Modes.Interruption : Modes.Generation;
 
     switch (mode) {
@@ -62,7 +114,7 @@ async function handleSubmit(event) {
 }
 
 async function interruptGeneration() {
-    const submitBtn = document.querySelector(".submit-btn");
+    const submitBtn = document.getElementById("submit-btn");
 
     const jobId = submitBtn.getAttribute("data-job-id");
     if (!jobId) {
@@ -73,7 +125,9 @@ async function interruptGeneration() {
 
     console.log(`[Interrupt Generation] Attempting to interrupt job with ID: ${jobId}`);
 
-    const interruptUrl = constructUrl(`/interrupt_job`);
+    const model = getSelectedModel();
+
+    const interruptUrl = constructUrl(model, `/interrupt_job`);
     const response = await fetch(interruptUrl, {
         method: "POST",
         headers: {
@@ -94,12 +148,15 @@ async function interruptGeneration() {
 }
 
 function preGenerationActions() {
-    const submitBtn = document.querySelector(".submit-btn");
+    const submitBtn = document.getElementById("submit-btn");
+    const modelBtn = document.getElementById("model-btn");
     const downloadBtn = document.getElementById("download-btn");
 
     if (!submitBtn.classList.contains("submit-btn-generating")) {
         submitBtn.classList.add("submit-btn-generating");
     }
+
+    modelBtn.disabled = true;
 
     if (downloadBtn.getAttribute("data-timer-interval")) {
         clearInterval(downloadBtn.getAttribute("data-timer-interval"));
@@ -114,7 +171,7 @@ async function generateText() {
 
     // *************************** Getting and formatting input *****************************
     // Get user input
-    const charInput = document.querySelector(".char-input");
+    const charInput = document.getElementById("char-input");
     const inputText = charInput.value;
     // Matching user input into an array
     console.log("[Input Check] Obtained input text: ", inputText);
@@ -167,7 +224,9 @@ async function generateText() {
 async function processGenerateRequest(inputText) {
     console.log("[Generate Text] Initiating generation");
 
-    const startJobUrl = constructUrl(`/start_job`);
+    const model = getSelectedModel();
+
+    const startJobUrl = constructUrl(model, `/start_job`);
 
     const startJobResponse = await fetch(startJobUrl, {
         method: "POST",
@@ -188,11 +247,11 @@ async function processGenerateRequest(inputText) {
     const jobId = (await startJobResponse.json()).job_id;
     console.log(`[Generate Text] Job started with ID: ${jobId}`);
 
-    const submitBtn = document.querySelector(".submit-btn");
+    const submitBtn = document.getElementById("submit-btn");
     submitBtn.setAttribute("data-job-id", jobId);
 
     while (true) {
-        const retrieveJobUrl = constructUrl(`/retrieve_job?job_id=${jobId}`);
+        const retrieveJobUrl = constructUrl(model, `/retrieve_job?job_id=${jobId}`);
 
         const retrieveJobResponse = await fetch(retrieveJobUrl);
 
@@ -227,9 +286,12 @@ function postGenerationFailureActions() {
     document.getElementById("output-result-container").style.display = "none";
     document.getElementById("output-loader").style.display = "none";
 
-    const submitBtn = document.querySelector(".submit-btn");
+    const submitBtn = document.getElementById("submit-btn");
     submitBtn.classList.remove("submit-btn-generating");
     submitBtn.removeAttribute("data-job-id");
+
+    const modelBtn = document.getElementById("model-btn");
+    modelBtn.disabled = false;
 
     enableSubmitButton();
 }
@@ -239,13 +301,18 @@ function postSuccessfulGenerationActions(job) {
     enableSubmitButton();
     startButtonTimer();
 
-    const submitBtn = document.querySelector(".submit-btn");
+    const submitBtn = document.getElementById("submit-btn");
     submitBtn.classList.remove("submit-btn-generating");
     submitBtn.removeAttribute("data-job-id");
+
+    const modelBtn = document.getElementById("model-btn");
+    modelBtn.disabled = false;
 }
 
 function displayResults(generatedWordLocations) {
     console.log("[Display Results] Displaying results");
+
+    const model = getSelectedModel();
 
     const picturesDiv = document.getElementById("pictures");
     picturesDiv.innerHTML = ""; // Clear previous images
@@ -259,7 +326,7 @@ function displayResults(generatedWordLocations) {
 
         if (success) {
             try {
-                img.src = constructUrl(`/get_image?image_id=${imageId}`);
+                img.src = constructUrl(model, `/get_image?image_id=${imageId}`);
                 img.classList.add("result-image"); // Add a CSS class to the image element
             } catch (error) {
                 console.error(`[Display Results] Error setting image source for word ${word} with image id ${imageId}:`, error);

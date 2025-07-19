@@ -22,17 +22,24 @@
             <div class="playground-container">
                 <div class="input-container">
                     <div class="input-group">
-                        <textarea class="char-input" rows="5" cols="33" pattern="^.{1}$"
+                        <textarea id="char-input" rows="5" cols="33" pattern="^.{1}$"
                             placeholder="Input Chinese characters" required></textarea>
                     </div>
 
-                    <button class="submit-btn" href="#" onclick="">
-                        <span class="top-key"></span>
-                        <span class="text">Generate</span>
-                        <span class="interrupt-symbol"></span>
-                        <span class="bottom-key-1"></span>
-                        <span class="bottom-key-2"></span>
-                    </button>
+                    <div class="action-group">
+                        <button id="model-btn" href="#" onclick="">
+                            <div class="top-text">Model</div>
+                            <div class="model-name"></div>
+                        </button>
+
+                        <button id="submit-btn" href="#" onclick="">
+                            <span class="top-key"></span>
+                            <span class="text">Generate</span>
+                            <span class="interrupt-symbol"></span>
+                            <span class="bottom-key-1"></span>
+                            <span class="bottom-key-2"></span>
+                        </button>
+                    </div>
                 </div>
                 <div class="output-container">
                     <div id="output-sample">

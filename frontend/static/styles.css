@@ -172,7 +172,7 @@ footer p {
 
 /********** Mobile layout styles ***********/
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
     .website-name {
         font-size: 2rem;
     }
