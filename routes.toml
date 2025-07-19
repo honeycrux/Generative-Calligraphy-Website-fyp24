@@ -1,0 +1,33 @@
+# https://fastapi.tiangolo.com/advanced/behind-a-proxy/#testing-locally-with-traefik
+
+[http]
+  [http.middlewares]
+
+    [http.middlewares.api-stripprefix.stripPrefix]
+      prefixes = ["/fyp23", "/fyp24"]
+
+  [http.routers]
+
+    [http.routers.fyp23-container-http]
+      entryPoints = ["http"]
+      service = "fyp23-container"
+      rule = "PathPrefix(`/fyp23`)"
+      middlewares = ["api-stripprefix"]
+
+    [http.routers.fyp24-container-http]
+      entryPoints = ["http"]
+      service = "fyp24-container"
+      rule = "PathPrefix(`/fyp24`)"
+      middlewares = ["api-stripprefix"]
+
+  [http.services]
+
+    [http.services.fyp23-container]
+      [http.services.fyp23-container.loadBalancer]
+        [[http.services.fyp23-container.loadBalancer.servers]]
+          url = "http://127.0.0.1:6723"
+
+    [http.services.fyp24-container]
+      [http.services.fyp24-container.loadBalancer]
+        [[http.services.fyp24-container.loadBalancer.servers]]
+          url = "http://127.0.0.1:6724"

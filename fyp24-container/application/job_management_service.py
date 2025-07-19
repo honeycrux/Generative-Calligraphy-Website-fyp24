@@ -1,0 +1,228 @@
+import asyncio
+import threading
+import time
+from datetime import timedelta
+from typing import Optional
+from uuid import UUID, uuid4
+
+from application.port_in.job_management_port import JobManagementPort
+from application.port_out.image_repository_port import ImageRepositoryPort
+from application.port_out.text_generator_port import TextGeneratorPort
+from domain.entity.job import Job
+from domain.entity.job_queue import JobQueue
+from domain.entity.job_table import JobTable
+from domain.value.font_gen_service_config import FontGenServiceConfig
+from domain.value.generated_word import GeneratedWord
+from domain.value.generated_word_location import GeneratedWordLocation
+from domain.value.job_info import (
+    CancelledJob,
+    CompletedJob,
+    FailedJob,
+    RunningJob,
+    WaitingJob,
+)
+from domain.value.job_input import JobInput
+from domain.value.job_status import JobStatus
+from domain.value.running_state import RunningState
+
+
+class JobManagementService(JobManagementPort):
+    __config: FontGenServiceConfig
+    __job_table: JobTable
+    __job_queue: JobQueue
+    __text_generator_port: TextGeneratorPort
+    __image_repository_port: ImageRepositoryPort
+    __operate_queue_thread: threading.Thread
+    __cleanup_job_table_thread: threading.Thread
+
+    def __init__(
+        self,
+        text_generator_port: TextGeneratorPort,
+        image_repository_port: ImageRepositoryPort,
+        font_gen_service_config: FontGenServiceConfig,
+    ):
+        self.__config = font_gen_service_config
+        self.__text_generator_port = text_generator_port
+        self.__image_repository_port = image_repository_port
+
+        max_retain_time = timedelta(seconds=font_gen_service_config.max_retain_time)
+        self.__job_table = JobTable(max_retain_time=max_retain_time)
+        self.__job_queue = JobQueue()
+
+        self.__operate_queue_thread = self.continuously_operate_queue()
+        self.__cleanup_job_table_thread = self.continuously_cleanup_job_table()
+
+    def start_job(self, job_input: JobInput):
+        new_job_id = uuid4()
+        queue_size = self.__job_queue.size()
+        new_job = Job(
+            job_id=new_job_id,
+            job_input=job_input,
+            job_status=JobStatus.Waiting,
+            job_info=WaitingJob.create(place_in_queue=queue_size + 1),
+        )
+        self.__job_table.add_job(new_job)
+        self.__job_queue.add_job(new_job_id)
+        return new_job_id
+
+    def retrieve_job(self, job_id: UUID) -> Optional[Job]:
+        return self.__job_table.get_job(job_id)
+
+    def interrupt_job(self, job_id: UUID) -> None:
+        self.__job_table.cancel_job(job_id)
+
+    def continuously_operate_queue(self) -> threading.Thread:
+        def on_new_state(job: Job, state: RunningState):
+            assert isinstance(
+                job.job_info, RunningJob
+            ), "Job info should be RunningJob at this point"
+
+            # Update job info with the new state
+            job.update(
+                job_status=JobStatus.Running,
+                job_info=job.job_info.of_state(state),
+            )
+
+        def on_new_word_result(job: Job, generated_word: GeneratedWord):
+            word = generated_word.word
+            image = generated_word.image
+            image_id: Optional[UUID] = None
+
+            if generated_word.success:
+                assert image is not None
+                # If the image data is available, save it to the file system
+                image_id = self.__image_repository_port.save_image(image=image)
+
+            # Add the word result to the job's generation result
+            generated_word_location = GeneratedWordLocation(word, image_id)
+            job.add_generated_word_location(generated_word_location)
+
+        async def operate_queue() -> None:
+            if self.__job_queue.size() < 1:
+                # No jobs in the queue, wait for a while before checking again
+                if self.__config.operate_queue_interval > 0:
+                    await asyncio.sleep(self.__config.operate_queue_interval)
+                return
+
+            job_id = self.__job_queue.dequeue_job(
+                shift_queue=lambda: self.__job_table.shift_job_queue()
+            )
+
+            job = self.__job_table.get_job(job_id)
+
+            if job is None:
+                # Job not found in the table, nothing to process
+                return
+
+            if not isinstance(job.job_info, WaitingJob):
+                # Job is not in a waiting state, nothing to process
+                return
+
+            # Update job status and info
+            job.update(
+                job_status=JobStatus.Running,
+                job_info=RunningJob.of(job.job_info),
+            )
+
+            assert isinstance(
+                job.job_info, RunningJob
+            ), "Job info should be RunningJob at this point"
+
+            # Start the font generation job
+            job_coroutine = self.__text_generator_port.generate_text(
+                job_input=job.job_input,
+                job_info=job.job_info,
+                on_new_state=lambda state: on_new_state(job, state),
+                on_new_word_result=lambda generated_word: on_new_word_result(
+                    job=job, generated_word=generated_word
+                ),
+            )
+
+            # Add the coroutine to the job table
+            self.__job_table.add_coroutine(job_id, job_coroutine)
+
+            # Wait for the job to complete and handle the result
+            try:
+                result = await job_coroutine
+
+                if isinstance(result, bool):
+                    if result:
+                        # Job was successful
+                        job.update(
+                            job_status=JobStatus.Completed,
+                            job_info=CompletedJob.of(job.job_info),
+                        )
+                    else:
+                        raise ValueError(
+                            "Job returned False, but no error message was provided."
+                        )
+
+                if isinstance(result, str):
+                    # Job failed with an error message
+                    job.update(
+                        job_status=JobStatus.Failed,
+                        job_info=FailedJob.of(job.job_info, error_message=result),
+                    )
+                    return
+
+            except asyncio.CancelledError:
+                # Job was cancelled
+                job.update(
+                    job_status=JobStatus.Cancelled,
+                    job_info=CancelledJob.of(job.job_info),
+                )
+                return
+
+            except Exception as e:
+                # An unexpected error occurred
+                job.update(
+                    job_status=JobStatus.Failed,
+                    job_info=FailedJob.of(job.job_info, error_message=str(e)),
+                )
+                return
+
+        async def always_operate_queue() -> None:
+            while True:
+                try:
+                    await operate_queue()
+                except asyncio.CancelledError:
+                    # If the job is cancelled, exit the loop
+                    break
+
+        # Continuously run the above process
+        operate_queue_thread = threading.Thread(
+            target=lambda: asyncio.run(always_operate_queue()),
+            args=(),
+            # Ensure the thread is a daemon thread so it doesn't block program exit
+            daemon=True,
+        )
+        operate_queue_thread.start()
+
+        return operate_queue_thread
+
+    def continuously_cleanup_job_table(self) -> threading.Thread:
+        def on_delete_resource(image_id: UUID) -> None:
+            # Delete the image resource from the repository
+            self.__image_repository_port.delete_image(image_id=image_id)
+
+        def cleanup_job_table() -> None:
+            # Wait for the configured max retain time before the next cleanup
+            time.sleep(self.__config.max_retain_time)
+
+            # Clean up job table
+            self.__job_table.cleanup(on_delete_resource=on_delete_resource)
+
+        def always_cleanup_job_table() -> None:
+            while True:
+                cleanup_job_table()
+
+        # Continuously run the above process
+        continuously_cleanup_job_table_thread = threading.Thread(
+            target=always_cleanup_job_table,
+            args=(),
+            # Ensure the thread is a daemon thread so it doesn't block program exit
+            daemon=True,
+        )
+        continuously_cleanup_job_table_thread.start()
+
+        return continuously_cleanup_job_table_thread

@@ -72,7 +72,7 @@ async def test_generate_empty_text(font_generation_application):
 
 @pytest.mark.slow
 @pytest.mark.asyncio
-async def test_generate_missing_character(font_generation_application):
+async def test_generate_space_character(font_generation_application):
     result = await generate_text(font_generation_application, " ")
 
     assert result == [GeneratedWord.from_image(word=" ", image=None)]
@@ -80,12 +80,20 @@ async def test_generate_missing_character(font_generation_application):
 
 @pytest.mark.slow
 @pytest.mark.asyncio
+async def test_generate_missing_character(font_generation_application):
+    result = await generate_text(font_generation_application, "😳")
+
+    assert result == [GeneratedWord.from_image(word="😳", image=None)]
+
+
+@pytest.mark.slow
+@pytest.mark.asyncio
 async def test_generate_single_traditional_chinese_word(font_generation_application):
+    result = await generate_text(font_generation_application, "書")
+
     expected_image = Image.open(
         "./tests/adapter/data_access/test_generate_single_result/書.png"
     )
-
-    result = await generate_text(font_generation_application, "書")
 
     assert result == [GeneratedWord.from_image("書", expected_image)]
 
@@ -93,11 +101,11 @@ async def test_generate_single_traditional_chinese_word(font_generation_applicat
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_generate_single_simplified_chinese_word(font_generation_application):
+    result = await generate_text(font_generation_application, "书")
+
     expected_image = Image.open(
         "./tests/adapter/data_access/test_generate_single_result/书.png"
     )
-
-    result = await generate_text(font_generation_application, "书")
 
     assert result == [GeneratedWord.from_image("书", expected_image)]
 
@@ -105,11 +113,11 @@ async def test_generate_single_simplified_chinese_word(font_generation_applicati
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_generate_single_english_character(font_generation_application):
+    result = await generate_text(font_generation_application, "A")
+
     expected_image = Image.open(
         "./tests/adapter/data_access/test_generate_single_result/A.png"
     )
-
-    result = await generate_text(font_generation_application, "A")
 
     assert result == [GeneratedWord.from_image("A", expected_image)]
 
@@ -117,11 +125,11 @@ async def test_generate_single_english_character(font_generation_application):
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_generate_single_number(font_generation_application):
+    result = await generate_text(font_generation_application, "1")
+
     expected_image = Image.open(
         "./tests/adapter/data_access/test_generate_single_result/1.png"
     )
-
-    result = await generate_text(font_generation_application, "1")
 
     assert result == [GeneratedWord.from_image("1", expected_image)]
 
@@ -129,6 +137,8 @@ async def test_generate_single_number(font_generation_application):
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_generate_mixed_text(font_generation_application):
+    result = await generate_text(font_generation_application, "書书 A1")
+
     expected_image_0 = Image.open(
         "./tests/adapter/data_access/test_generate_mixed_result/書.png"
     )
@@ -141,8 +151,6 @@ async def test_generate_mixed_text(font_generation_application):
     expected_image_4 = Image.open(
         "./tests/adapter/data_access/test_generate_mixed_result/1.png"
     )
-
-    result = await generate_text(font_generation_application, "書书 A1")
 
     assert result == [
         GeneratedWord.from_image("書", expected_image_0),

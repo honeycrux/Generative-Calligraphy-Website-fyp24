@@ -75,8 +75,6 @@ def test_prepare_single_traditional_chinese_word():
     expected_output_image_path = f"{TEST_OUTPUT_FOLDER}/書.png"
     remove_existing_file(expected_output_image_path)
 
-    expected_image = Image.open("tests/fyp23_model/test_font2img_result/書.png")
-
     result = run_font2img_cli(text="書")
 
     assert (
@@ -84,6 +82,8 @@ def test_prepare_single_traditional_chinese_word():
     ), "Expected message not found in output: '0 characters are missing in this font'"
 
     output_image = Image.open(expected_output_image_path)
+
+    expected_image = Image.open("tests/fyp23_model/test_font2img_result/書.png")
 
     assert images_are_equal(
         output_image, expected_image
@@ -97,8 +97,6 @@ def test_prepare_single_simplified_chinese_word():
     expected_output_image_path = f"{TEST_OUTPUT_FOLDER}/书.png"
     remove_existing_file(expected_output_image_path)
 
-    expected_image = Image.open("tests/fyp23_model/test_font2img_result/书.png")
-
     result = run_font2img_cli(text="书")
 
     assert (
@@ -106,6 +104,8 @@ def test_prepare_single_simplified_chinese_word():
     ), "Expected message not found in output: '0 characters are missing in this font'"
 
     output_image = Image.open(expected_output_image_path)
+
+    expected_image = Image.open("tests/fyp23_model/test_font2img_result/书.png")
 
     assert images_are_equal(
         output_image, expected_image
@@ -119,8 +119,6 @@ def test_prepare_single_english_character():
     expected_output_image_path = f"{TEST_OUTPUT_FOLDER}/A.png"
     remove_existing_file(expected_output_image_path)
 
-    expected_image = Image.open("tests/fyp23_model/test_font2img_result/A.png")
-
     result = run_font2img_cli(text="A")
 
     assert (
@@ -128,6 +126,8 @@ def test_prepare_single_english_character():
     ), "Expected message not found in output: '0 characters are missing in this font'"
 
     output_image = Image.open(expected_output_image_path)
+
+    expected_image = Image.open("tests/fyp23_model/test_font2img_result/A.png")
 
     assert images_are_equal(
         output_image, expected_image
@@ -141,8 +141,6 @@ def test_prepare_single_number():
     expected_output_image_path = f"{TEST_OUTPUT_FOLDER}/1.png"
     remove_existing_file(expected_output_image_path)
 
-    expected_image = Image.open("tests/fyp23_model/test_font2img_result/1.png")
-
     result = run_font2img_cli(text="1")
 
     assert (
@@ -150,6 +148,8 @@ def test_prepare_single_number():
     ), "Expected message not found in output: '0 characters are missing in this font'"
 
     output_image = Image.open(expected_output_image_path)
+
+    expected_image = Image.open("tests/fyp23_model/test_font2img_result/1.png")
 
     assert images_are_equal(
         output_image, expected_image
@@ -170,11 +170,6 @@ def text_prepare_mixed_text():
     remove_existing_file(expected_output_image_path_3)
     remove_existing_file(expected_output_image_path_4)
 
-    expected_image_0 = Image.open("tests/fyp23_model/test_font2img_result/書.png")
-    expected_image_1 = Image.open("tests/fyp23_model/test_font2img_result/书.png")
-    expected_image_3 = Image.open("tests/fyp23_model/test_font2img_result/A.png")
-    expected_image_4 = Image.open("tests/fyp23_model/test_font2img_result/1.png")
-
     result = run_font2img_cli(text="書书 A1")
 
     assert (
@@ -185,6 +180,11 @@ def text_prepare_mixed_text():
     output_image_1 = Image.open(expected_output_image_path_1)
     output_image_3 = Image.open(expected_output_image_path_3)
     output_image_4 = Image.open(expected_output_image_path_4)
+
+    expected_image_0 = Image.open("tests/fyp23_model/test_font2img_result/書.png")
+    expected_image_1 = Image.open("tests/fyp23_model/test_font2img_result/书.png")
+    expected_image_3 = Image.open("tests/fyp23_model/test_font2img_result/A.png")
+    expected_image_4 = Image.open("tests/fyp23_model/test_font2img_result/1.png")
 
     assert images_are_equal(
         output_image_0, expected_image_0

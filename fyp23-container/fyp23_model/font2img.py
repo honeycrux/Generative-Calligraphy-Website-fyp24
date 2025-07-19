@@ -34,6 +34,15 @@ def get_char_list_from_ttf(font_file):
     return char_list
 
 
+def is_char_in_font(font_path, char):
+    TTFont_font = TTFont(font_path)
+    cmap = TTFont_font["cmap"]
+    for subtable in cmap.tables:
+        if ord(char) in subtable.cmap:
+            return True
+    return False
+
+
 def draw_single_char(ch, font, canvas_size, x_offset, y_offset):
     img = Image.new("RGB", (canvas_size, canvas_size), (255, 255, 255))
     draw = ImageDraw.Draw(img)
@@ -198,7 +207,13 @@ def create_character_images_from_font(
     img_cnt = 0
     filter_cnt = 0
     results: list[CharacterResult] = []
+
     for cnt, character in enumerate(characters):
+        if not is_char_in_font(font_path, character):
+            results.append(CharacterResult(character=character, image=None))
+            filter_cnt += 1
+            continue
+
         img = draw_example(
             character,
             src_font,

@@ -6,8 +6,10 @@
 
 [providers]
   [providers.file]
-    directory = "./traefik-config/"
-    watch = true
+    filename = "routes.toml"
 
 [api]
   insecure = true
+
+[log]
+  level = "DEBUG"

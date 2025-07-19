@@ -15,8 +15,9 @@ TEST_OUTPUT_FOLDER = "test_outputs/fyp23_model"
 
 @pytest.fixture(autouse=True)
 def setup_output_folder():
-    os.makedirs("./test_outputs", exist_ok=True)
-    os.chmod("./test_outputs", 0o777)
+    os.makedirs(TEST_OUTPUT_FOLDER, exist_ok=True)
+    os.chmod("test_outputs", 0o777)
+    os.chmod(TEST_OUTPUT_FOLDER, 0o777)
 
 
 ### Helper Functions ###
@@ -93,11 +94,6 @@ def test_sample_mixed_text():
     remove_existing_file(expected_output_image_path_3)
     remove_existing_file(expected_output_image_path_4)
 
-    expected_image_0 = Image.open("tests/fyp23_model/test_sample_mixed_result/書.png")
-    expected_image_1 = Image.open("tests/fyp23_model/test_sample_mixed_result/书.png")
-    expected_image_3 = Image.open("tests/fyp23_model/test_sample_mixed_result/A.png")
-    expected_image_4 = Image.open("tests/fyp23_model/test_sample_mixed_result/1.png")
-
     result = run_sample_cli(text="書书 A1")
 
     assert (
@@ -108,6 +104,11 @@ def test_sample_mixed_text():
     output_image_1 = Image.open(expected_output_image_path_1)
     output_image_3 = Image.open(expected_output_image_path_3)
     output_image_4 = Image.open(expected_output_image_path_4)
+
+    expected_image_0 = Image.open("tests/fyp23_model/test_sample_mixed_result/書.png")
+    expected_image_1 = Image.open("tests/fyp23_model/test_sample_mixed_result/书.png")
+    expected_image_3 = Image.open("tests/fyp23_model/test_sample_mixed_result/A.png")
+    expected_image_4 = Image.open("tests/fyp23_model/test_sample_mixed_result/1.png")
 
     assert images_are_equal(
         output_image_0, expected_image_0

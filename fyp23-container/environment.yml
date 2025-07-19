@@ -17,15 +17,15 @@ dependencies:
   - tensorboardX
   - blobfile>=1.0.5
   - mpi4py
-  # - openmpi
-  - msmpi
+  - openmpi # for Linux
+  # - msmpi # for Windows
   - attrdict
   - PyYAML
-  # New-Font-Generation-from-Classic-Calligraphy
+  # New Font Generation from Classic Calligraphy
   - fonttools
   - matplotlib
-  # Font-Transform-Website
-  - fastapi[standard]
-  - pytest
+  # Generative Calligraphy Website
+  - fastapi[standard]>=0.115.8,<0.116.0
+  - pytest>=8.4.1,<9.0
   - pytest-asyncio
   - pytest-timeout

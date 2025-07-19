@@ -9,7 +9,7 @@ from .running_state import RunningState
 
 """ Inheritance structure
 
-[Decision Record](decision-record/use-subclassing-or-union.md)
+[Decision Record](decision-records/use-subclassing-or-union.md)
 Subclassing is used for job info types.
 
 JobInfo (BaseModel, ABC)
