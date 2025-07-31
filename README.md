@@ -2,7 +2,7 @@
 
 ## Installation
 
-### Environment Setup
+#### Environment Setup
 
 Install Miniconda (See [Miniconda documentation](https://docs.conda.io/en/latest/miniconda.html)).
 
@@ -13,7 +13,7 @@ Install all conda environments with the following command (it takes a while to c
 sh scripts/setup-conda-envs.sh
 ```
 
-### Install Traefik
+#### Install Traefik
 
 Go to [Traefik releases](https://github.com/traefik/traefik/releases). Download the Traefik binary appropriate for your machine. Rename the binary as `traefik` and place it in the project root.
 
@@ -77,7 +77,7 @@ To run the tests on a model container, use the corresponding conda environment a
 
 ```sh
 conda activate fyp23-container
-cd fyp23-container
+cd fyp23-container/
 ```
 
 To run all tests, run:
@@ -102,7 +102,7 @@ pytest tests/ -m "not cli"
 These links are provided by the FYP23 group.
 - Original model: https://github.com/Hxyz-123/Font-diff
 - Our repository: https://github.com/lylee0/New-Font-Generation-from-Classic-Calligraphy
-- Demo Video: https://www.youtube.com/watch?v=jJgcGwrZJ-k
+- Demo video: https://www.youtube.com/watch?v=jJgcGwrZJ-k
 
 These links are provided by the FYP24 group.
 - Original model: https://github.com/yeungchenwa/FontDiffuser

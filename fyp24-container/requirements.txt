@@ -5,9 +5,11 @@ diffusers>=0.23.0,<0.24.0
 huggingface_hub>=0.25.0,<0.26.0
 pyyaml
 pygame
-opencv-python
+opencv-python>=4.9.0.80,<4.10.0.0  # Before supporting Numpy 2.0.0
 info-nce-pytorch
 kornia>=0.7.0,<0.7.4  # Do not use 0.7.4 or 0.8.0; other versions are fine
+fonttools
+numpy<2.0.0
 
 ### FYP24 Team ###
 
