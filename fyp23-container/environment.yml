@@ -21,6 +21,7 @@ dependencies:
   # - msmpi # for Windows
   - attrdict
   - PyYAML
+  - numpy<2
   # New Font Generation from Classic Calligraphy
   - fonttools
   - matplotlib

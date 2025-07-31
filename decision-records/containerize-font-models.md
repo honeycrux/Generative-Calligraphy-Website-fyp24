@@ -12,7 +12,7 @@ The approach of a single API application requires both models to be on the same 
 
 ## Decision
 
-Use a separate container for each font model, running its own API application with a job queue.
+Use a container to serve the frontend application. Use one container per font model, running its own API application with a job queue.
 
 Use a proxy server or a gateway API application to forward requests from the frontend application to the font model containers.
 
@@ -21,6 +21,7 @@ Use a proxy server or a gateway API application to forward requests from the fro
 Effects
 
 - Increase in scalability of models, reducing integration difficulties/impossibilities
+- Each container can have independent technology choices
 - Improves maintainability by isolating concerns
 - Using a job queue in each container removes the need to keep track of container states in a gateway API application
 
