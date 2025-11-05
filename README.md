@@ -6,12 +6,17 @@
 
 Install Miniconda (See [Miniconda documentation](https://docs.conda.io/en/latest/miniconda.html)).
 
-**If a Windows machine is used, in `fyp23-container/environment.yml`, replace `openmpi` with `msmpi` before continuing the installation.**
+**If a Windows machine is used, go to `fyp23-container/environment.yml` and replace `openmpi` with `msmpi` before continuing the installation.**
 
 Install all conda environments with the following command (it takes a while to complete):
 ```sh
 sh scripts/setup-conda-envs.sh
 ```
+
+This will install the following environments:
+- `generative-calligraphy-website` (used by `frontend/`)
+- `fyp23-container` (used by `fyp23-container/`)
+- `fyp24-container` (used by `fyp24-container/`)
 
 #### Install Traefik
 

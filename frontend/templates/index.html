@@ -15,8 +15,10 @@
         <div class="section" id="top-section">
             <div class="title-container">
                 <h1 class="website-name">Generative Calligraphy Website</h1>
-                <div class="brief-desc">This application generates texts in the style of Lantingji Xu, a famous calligraphic work by the Chinese
-                calligrapher Wang Xizhi.</div>
+                <div class="brief-desc">
+                    This application generates texts in the style of Lantingji Xu, a famous
+                    calligraphic work by the Chinese calligrapher Wang Xizhi.
+                </div>
             </div>
 
             <div class="playground-container">
@@ -70,12 +72,14 @@
 
         <div class="section" id="bottom-section">
             <div class="description">
+
                 <div class="description-title">
                     <div>
                         <div class="description-decor-bar"></div>
                         <h1>About the project</h1>
                     </div>
                 </div>
+
                 <div class="descript-section">
                     <img src="./static/lantingjixu.jpeg" alt="[no image available]" class="descript-img" />
                     <p>
@@ -88,6 +92,9 @@
                         works.
                     </p>
                 </div>
+
+                <h1>DiffFont-Fusion (2024)</h1>
+
                 <div class="descript-section">
                     <p>
                         A diffusion model is trained to tackle the task, followed by extra fine-tuning steps. An image
@@ -95,13 +102,38 @@
                         model training in each loop, together with its style component encoded by a pre-trained style
                         encoder.
                     </p>
-                    <img src="./static/summer-model.png" alt="[no image available]" class="descript-img" />
+                    <img src="./static/fyp23-summer-model.png" alt="[no image available]" class="descript-img" />
                 </div>
+
                 <div class="descript-section">
-                    <p>The style encoder is taken from DG-Font, which encodes the style of the training dataset and
-                        characters in Lanting Xu.</p>
-                    <img src="./static/style-encoder.png" alt="[no image available]" class="descript-img" />
+                    <p>
+                        The style encoder is taken from DG-Font, which encodes the style of the training dataset and
+                        characters in Lanting Xu.
+                    </p>
+                    <img src="./static/dgfont-style-encoder.png" alt="[no image available]" class="descript-img" />
                 </div>
+
+                <h1>FontDiffuser-Orchid (2025)</h1>
+
+                <div class="descript-section">
+                    <img src="./static/fontdiffuser-model-diffusion-part.jpg" alt="[no image available]"
+                        class="descript-img" />
+                    <p>
+                        A conditional diffusion model is fine-tuned on Wang Xizhi's work. An image of a Chinese
+                        character, encoded by a pre-trained content encoder, and a reference image for the desired
+                        style, encoded by a pre-trained style encoder, is passed to a U-Net for model training.
+                    </p>
+                </div>
+
+                <div class="descript-section">
+                    <img src="./static/fontdiffuser-mca-module.jpg" alt="[no image available]" class="descript-img" />
+                    <p>
+                        The model uses Multi-scale Content Aggregation (MCA) modules to better fuse the content and
+                        style features. The MCA uses different levels of content features to better preserve the
+                        structure of the content character, genereating more accurate strokes.
+                    </p>
+                </div>
+
             </div>
         </div>
         <footer>

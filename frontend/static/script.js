@@ -7,10 +7,10 @@ const calligraphyModelOptions = [CalligraphyModel.FYP23, CalligraphyModel.FYP24]
 
 const calligraphyModelDetails = {
     [CalligraphyModel.FYP23]: {
-        displayedName: "FYP23",
+        displayedName: "DiffFont-Fusion",
     },
     [CalligraphyModel.FYP24]: {
-        displayedName: "FYP24",
+        displayedName: "FontDiffuser-Orchid",
     },
 };
 
